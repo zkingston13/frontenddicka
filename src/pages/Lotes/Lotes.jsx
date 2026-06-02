@@ -37,27 +37,14 @@ const Lotes = () => {
     setBusqueda(e.target.value);
   }, []);
 
-  const handleImpresion = useCallback(
-    async (id) => {
-      if (imprimiendoId) return;
-      if (!window.confirm("¿Deseas imprimir las etiquetas de este lote?"))
-        return;
-      setImprimiendoId(id);
-      try {
-        await imprimirEtiqueta(id);
-        alert("✅ Etiqueta enviada a impresión");
-      } catch (err) {
-        console.error("❌ Error al imprimir:", err);
-        alert(
-          `❌ Error al imprimir: ${err.response?.data?.error || err.message}`
-        );
-      } finally {
-        setImprimiendoId(null);
-      }
-    },
-    [imprimiendoId]
-  );
-
+  
+    const handleImpresion = (id) => {
+    window.open(
+        `http://localhost:8000/api/lotes/${id}/imprimir-etiquetas`,
+        "_blank"
+    );
+};
+  
   const handleEliminar = async (id) => {
     if (
       !window.confirm(
