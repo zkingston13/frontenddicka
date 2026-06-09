@@ -25,10 +25,10 @@ const Salidas = () => {
         .slice(0, 20);
 
       setSalidas(salidasOrdenadas);
-      console.log("📦 Datos de salidas recibidos:", salidasOrdenadas); // 🔹 Agregar log para depuración
+      console.log("📦 Datos de salidas recibidos:", salidasOrdenadas); 
       setError("");
     } catch (err) {
-      setError("❌ Error al cargar salidas.");
+      setError("Error al cargar salidas.");
     } finally {
       setIsLoading(false);
     }
@@ -43,80 +43,113 @@ const Salidas = () => {
   );
 
   return (
-    <div className="container mt-4">
-      <h1 className="text-center">🚛 Historial de Salidas</h1>
-
-      {/* 🔹 Buscador */}
-      <div className="row mb-3">
-        <div className="col-md-6 mx-auto">
-          <div className="input-group">
-            <span className="input-group-text">🔍</span>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Buscar por número de lote..."
-              value={busqueda}
-              onChange={handleBusqueda}
-            />
-          </div>
+    <div className="container-fluid px-4 py-4" style={{ backgroundColor: "#fdfdfd", minHeight: "100vh" }}>
+      
+      {/* Barra Superior Unificada */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center border-bottom pb-3 mb-4">
+        <div>
+          <h2 className="fw-bold text-dark mb-0" style={{ letterSpacing: "-0.5px" }}>Historial de Salidas</h2>
+          <p className="text-muted small mb-0">Bitácora de despachos, control de embarques y palets validados en piso</p>
+        </div>
+        
+        <div className="mt-3 mt-md-0 w-100 w-md-auto" style={{ maxWidth: "350px" }}>
+          <input
+            type="text"
+            className="form-control form-control-sm"
+            placeholder="Buscar por lote..."
+            value={busqueda}
+            onChange={handleBusqueda}
+            style={{ minWidth: "240px", borderRadius: "6px" }}
+          />
         </div>
       </div>
 
-      {/* 🔹 Mostrar errores */}
-      {error && <div className="alert alert-danger text-center">{error}</div>}
+      {error && <div className="alert alert-danger shadow-sm border-0 small text-center mb-4">{error}</div>}
 
-      {/* 🔹 Mostrar spinner de carga */}
+      {/* Spinner de Carga Estilizado */}
       {isLoading && (
-        <div className="text-center my-3">
-          <div className="spinner-border text-primary"></div>
-          <p className="mt-2">Cargando historial de salidas...</p>
+        <div className="text-center my-5 py-5">
+          <div className="spinner-border text-primary spinner-border-sm" role="status"></div>
+          <p className="text-muted small mt-2">Consultando bitácora de despachos...</p>
         </div>
       )}
 
-      {/* 🔹 Tabla responsiva con Bootstrap */}
+      {/* Contenedor de la Tabla Principal */}
       {!isLoading && (
-        <div className="table-responsive">
-          <table className="table table-striped table-bordered">
-            <thead className="table-dark text-center">
-              <tr>
-                <th>🆔 ID</th>
-                <th>📦 Lote</th>
-                <th>🚚 Embarque</th>
-                <th>📦 No. Pallet</th>
-                <th>📊 Cantidad Entregada</th>
-                <th>📅 Fecha</th>
-                <th>👤 Usuario</th>
-                <th>⚙️ Observaciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {salidasFiltradas.length > 0 ? (
-                salidasFiltradas.map((salida) => (
-                  <tr key={salida.id}>
-                    <td>{salida.id}</td>
-                    <td>{salida.lote?.lote || "N/A"}</td>
-                    <td>{salida.qrEmbarque || "N/A"}</td>{" "}
-                    {/* 🔹 FIX: Cambio transporte?.qr por qrEmbarque */}
-                    <td>{salida.paletPiso}</td>
-                    <td>{salida.cantidadEntregada}</td>
-                    <td>
-                      {salida.created_at
-                        ? new Date(salida.created_at).toLocaleString("es-MX")
-                        : "Sin fecha"}
-                    </td>
-                    <td>{salida.usuario?.nombre || "Desconocido"}</td>
-                    <td>{salida.observaciones || "Sin observaciones"}</td>
-                  </tr>
-                ))
-              ) : (
+        <div className="card border shadow-sm" style={{ borderRadius: "8px" }}>
+          <div className="table-responsive">
+            <table className="table table-hover align-middle mb-0" style={{ fontSize: "0.88rem" }}>
+              <thead className="table-light border-bottom text-muted">
                 <tr>
-                  <td colSpan="8" className="text-center text-muted">
-                    ⚠️ No hay registros de salidas.
-                  </td>
+                  <th className="py-2.5 ps-3 fw-semibold text-center" style={{ width: "8%" }}>ID</th>
+                  <th className="py-2.5 fw-semibold text-center" style={{ width: "12%" }}>Lote</th>
+                  <th className="py-2.5 fw-semibold" style={{ width: "15%" }}>Embarque</th>
+                  <th className="py-2.5 fw-semibold text-end" style={{ width: "10%" }}>No. Pallet</th>
+                  <th className="py-2.5 fw-semibold text-end text-primary" style={{ width: "15%" }}>Cant. Entregada</th>
+                  <th className="py-2.5 fw-semibold text-center" style={{ width: "15%" }}>Fecha de Salida</th>
+                  <th className="py-2.5 fw-semibold" style={{ width: "12%" }}>Operador / Usuario</th>
+                  <th className="py-2.5 fw-semibold pe-3" style={{ width: "13%" }}>Observaciones</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {salidasFiltradas.length > 0 ? (
+                  salidasFiltradas.map((salida) => (
+                    <tr key={salida.id} className="border-bottom">
+                      
+                      {/* ID */}
+                      <td className="py-3 text-center text-muted font-monospace" style={{ fontSize: "0.8rem" }}>
+                        {salida.id}
+                      </td>
+                      
+                      {/* Lote */}
+                      <td className="py-3 text-center font-monospace text-dark fw-bold">
+                        {salida.lote?.lote || <span className="text-muted fw-normal">N/A</span>}
+                      </td>
+                      
+                      {/* Embarque (Código QR) */}
+                      <td className="py-3 text-secondary font-monospace" style={{ fontSize: "0.85rem" }}>
+                        {salida.qrEmbarque || <span className="text-muted fw-normal">N/A</span>}
+                      </td>
+                      
+                      {/* No. Pallet */}
+                      <td className="py-3 text-end font-monospace text-secondary">
+                        {salida.paletPiso}
+                      </td>
+                      
+                      {/* Cantidad Entregada */}
+                      <td className="py-3 text-end font-monospace fw-bold text-primary">
+                        {salida.cantidadEntregada}
+                      </td>
+                      
+                      {/* Fecha Local es-MX */}
+                      <td className="py-3 text-center text-secondary small">
+                        {salida.created_at
+                          ? new Date(salida.created_at).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })
+                          : <span className="text-muted">Sin fecha</span>}
+                      </td>
+                      
+                      {/* Usuario */}
+                      <td className="py-3 text-dark fw-medium">
+                        {salida.usuario?.nombre || <span className="text-muted fw-normal">Desconocido</span>}
+                      </td>
+                      
+                      {/* Observaciones */}
+                      <td className="py-3 text-secondary text-truncate pe-3" style={{ maxWidth: "160px" }}>
+                        {salida.observaciones || <span className="text-muted-light italic">Sin observaciones</span>}
+                      </td>
+                      
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" className="text-center py-4 text-muted small">
+                      No se encontraron registros de salidas para el lote especificado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

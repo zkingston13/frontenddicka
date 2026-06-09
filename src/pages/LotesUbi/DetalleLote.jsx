@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  getDetalleLote,
-  getRecomendacionLote,
-  terminarUbicacionLote,
-} from "../../services/lotes";
+import { getDetalleLote, getRecomendacionLote, terminarUbicacionLote } from "../../services/lotes";
 import { useParams, useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -25,22 +21,16 @@ const DetalleLote = () => {
         if (data.ubi === "No Ubicado") {
           try {
             const rec = await getRecomendacionLote(id);
-
             setRecomendaciones(rec.recomendaciones || []);
-
-            setMensaje(
-              rec.mensaje ||
-                `Se encontraron ${rec.recomendaciones?.length || 0} ubicaciones recomendadas`
-            );
+            setMensaje(rec.mensaje || `Se encontraron ${rec.recomendaciones?.length || 0} ubicaciones recomendadas`);
           } catch (err) {
-            // Si la API de recomendaciones falla
             const apiError = err.response?.data?.error || "No hay recomendaciones disponibles.";
             setMensaje(apiError);
             setRecomendaciones([]);
           }
         }
       } catch (err) {
-        console.error("❌ Error:", err);
+        console.error("Error:", err);
         setError("No se pudo cargar la información del lote.");
       }
     };
@@ -48,130 +38,113 @@ const DetalleLote = () => {
     cargarDetalle();
   }, [id]);
 
-  // Loading
   if (!detalle && !error) {
     return (
-      <div className="text-center mt-5">
-        <div className="spinner-border text-success" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
-        <p className="mt-3 text-muted">Cargando detalle del lote...</p>
+      <div className="text-center my-5 py-5">
+        <div className="spinner-border text-primary spinner-border-sm" role="status"></div>
+        <p className="text-muted small mt-2">Consultando detalles del lote comercial...</p>
       </div>
     );
   }
 
-  // Error
   if (error) {
     return (
-      <div className="container mt-5">
-        <div className="alert alert-danger text-center">{error}</div>
+      <div className="container py-5" style={{ maxWidth: "550px" }}>
+        <div className="alert alert-danger shadow-sm border-0 small text-center mb-4">{error}</div>
         <div className="text-center">
-          <button className="btn btn-outline-secondary" onClick={() => navigate(-1)}>
-            ⬅️ Regresar
+          <button className="btn btn-outline-secondary btn-sm px-4 fw-medium" onClick={() => navigate(-1)}>
+            Regresar
           </button>
         </div>
       </div>
     );
   }
 
-  // Render principal
   return (
-    <div className="container mt-4">
-      <div className="card shadow-lg border-0 rounded-3">
-        <div className="card-header bg-success text-white text-center fw-bold fs-5">
-          📋 Detalle del Lote
+    <div className="container py-4" style={{ maxWidth: "700px" }}>
+      
+      {/* Botón superior de retorno */}
+      <div className="mb-3">
+        <button className="btn btn-link link-secondary text-decoration-none p-0 small fw-medium" onClick={() => navigate(-1)}>
+          &larr; Volver al tablero general
+        </button>
+      </div>
+
+      <div className="card border shadow-sm" style={{ borderRadius: "8px" }}>
+        
+        {/* Cabecera Técnica */}
+        <div className="card-header bg-light border-bottom py-3 px-4">
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <span className="text-muted text-uppercase tracking-wider font-monospace" style={{ fontSize: "0.75rem" }}>Especificación de Registro</span>
+              <h4 className="fw-bold text-dark mb-0 font-monospace mt-0.5">{detalle.lote}</h4>
+            </div>
+            <span className={`badge px-2.5 py-1.5 font-monospace ${detalle.ubi === "Ubicado" ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle"}`} style={{ fontSize: "0.75rem", borderRadius: "4px" }}>
+              {detalle.ubi}
+            </span>
+          </div>
         </div>
 
-        <div className="card-body">
-          {/* Datos generales */}
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <p>
-                <b>📜 Lote:</b> {detalle.lote}
-              </p>
-              <p>
-                <b>🏷️ Estado:</b>{" "}
-                <span
-                  className={`badge ${
-                    detalle.ubi === "Ubicado" ? "bg-success" : "bg-danger"
-                  }`}
-                >
-                  {detalle.ubi}
-                </span>
-              </p>
-            </div>
-
-            <div className="col-md-6">
-              <p>
-                <b>📦 Producto:</b>{" "}
-                {detalle.producto?.nombre || "Sin producto"}
-              </p>
+        {/* Cuerpo del Detalle */}
+        <div className="card-body p-4">
+          
+          {/* Ficha Técnica */}
+          <div className="p-3 bg-light border mb-4" style={{ borderRadius: "6px" }}>
+            <div className="row">
+              <div className="col-14 text-secondary small text-uppercase fw-semibold tracking-wide">Producto Asociado</div>
+              <div className="col-14 text-dark fw-bold fs-6 mt-1">{detalle.producto?.nombre || "Sin especificar"}</div>
             </div>
           </div>
 
-          {/* Si está ubicado */}
-          {detalle.ubi === "Ubicado" &&
-            detalle.lote_ubicaciones?.length > 0 && (
-              <div className="mt-4">
-                <h5 className="text-success fw-bold">
-                  📍 Ubicaciones del lote:
-                </h5>
-                <ul className="list-group mt-2">
-                  {detalle.lote_ubicaciones.map((u, idx) => (
-                    <li key={idx} className="list-group-item">
-                      <b>Rack:</b> {u.qr_ubicacion}
-                    </li>
-                  ))}
-                </ul>
+          {/* Bloque Condicional: YA ESTÁ UBICADO */}
+          {detalle.ubi === "Ubicado" && detalle.lote_ubicaciones?.length > 0 && (
+            <div className="mt-2">
+              <h6 className="fw-bold text-secondary text-uppercase tracking-wider font-monospace mb-2.5" style={{ fontSize: "0.75rem" }}>Posiciones en Almacén</h6>
+              <div className="list-group" style={{ borderRadius: "6px" }}>
+                {detalle.lote_ubicaciones.map((u, idx) => (
+                  <div key={idx} className="list-group-item d-flex justify-content-between align-items-center py-2.5 px-3 bg-white">
+                    <span className="text-muted small">Posición asignada</span>
+                    <span className="font-monospace text-dark fw-bold">{u.qr_ubicacion}</span>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-          {/* Si NO está ubicado */}
+          {/* Bloque Condicional: NO ESTÁ UBICADO (Sistema de sugerencia inteligente) */}
           {detalle.ubi === "No Ubicado" && (
-            <div className="alert alert-warning mt-4 text-center shadow-sm">
-              <h5 className="fw-bold mb-3">📍 Recomendaciones de Ubicación</h5>
+            <div className="border border-warning-subtle bg-warning-subtle bg-opacity-10 p-4 mb-2" style={{ borderRadius: "6px" }}>
+              <h6 className="fw-bold text-warning-emphasis text-uppercase tracking-wider font-monospace mb-1" style={{ fontSize: "0.75rem" }}>Propuesta de Acomodo Óptimo</h6>
+              <p className="text-muted small mb-3">{mensaje}</p>
 
-              {recomendaciones.length > 0 ? (
-                <>
-                  <p className="fw-bold">{mensaje}</p>
-
-                  <ul className="list-group list-group-flush">
-                    {recomendaciones.map((r, i) => (
-                      <li key={i} className="list-group-item fw-semibold">
-                        🟡 {r.codigo || r.ubicacion}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <p className="text-danger fw-bold">{mensaje}</p>
+              {recomendaciones.length > 0 && (
+                <div className="d-flex flex-wrap gap-2 mb-4">
+                  {recomendaciones.map((r, i) => (
+                    <span key={i} className="badge bg-white text-dark border shadow-sm font-monospace py-2 px-3 fs-6" style={{ borderRadius: "4px" }}>
+                      {r.codigo || r.ubicacion}
+                    </span>
+                  ))}
+                </div>
               )}
 
               <button
-                className="btn btn-success mt-3 px-4"
+                className="btn btn-success btn-sm w-100 fw-semibold tracking-wide py-2"
+                style={{ borderRadius: "5px" }}
                 onClick={async () => {
                   try {
                     const res = await terminarUbicacionLote(id);
                     alert(res.message);
                     window.location.reload();
                   } catch (error) {
-                    alert("❌ Error al actualizar el estado del lote.");
+                    alert("Error al actualizar el estado del lote.");
                   }
                 }}
               >
-                ✅ Terminar de ubicar
+                Confirmar Posición Fija
               </button>
             </div>
           )}
 
-          <div className="text-center mt-4">
-            <button
-              className="btn btn-outline-success px-4"
-              onClick={() => navigate(-1)}
-            >
-              ⬅️ Regresar a la lista
-            </button>
-          </div>
         </div>
       </div>
     </div>
