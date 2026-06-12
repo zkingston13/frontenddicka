@@ -16,6 +16,9 @@ const LoteForm = () => {
   const [piezasPalet, setPiezasPalet] = useState("");
   const [piezasLote, setPiezasLote] = useState("");
   const [unidadMedida, setUnidadMedida] = useState("");
+  const [operador, setOperador] = useState("");
+  const[lt, setLt] = useState("");
+  const[placas, setPlacas] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -84,6 +87,9 @@ const LoteForm = () => {
       setPiezasPalet(loteData.piezasPalet || "");
       setPiezasLote(loteData.piezasLote || "");
       setUnidadMedida(loteData.unidadMedida || "");
+      serOperador(loteData.operador || "");
+      setLt(loteData.lt || "");
+      setPlacas(loteData.placas || "");
       setObservaciones(loteData.observaciones || "");
     } catch (err) {
       setError("❌ Error al cargar lote.");
@@ -111,6 +117,9 @@ const LoteForm = () => {
       piezasPalet,
       piezasLote,
       unidadMedida,
+      operador,
+      lt,
+      placas,
       observaciones,
       usuario_id: user.id,
     };
@@ -270,6 +279,48 @@ const LoteForm = () => {
             required
           />
         </div>
+          <div className="mb-3">
+          <label htmlFor="operador" className="form-label">
+            Operador
+          </label>
+          <input
+            type="text"
+            id="operador"
+            className="form-control"
+            value={operador}
+            onChange={(e) => setOperador(e.target.value)}
+            required
+          />
+        </div>
+         
+             <div className="mb-3">
+          <label htmlFor="lt" className="form-label">
+            Lt
+          </label>
+          <input
+            type="text"
+            id="lt"
+            className="form-control"
+            value={lt}
+            onChange={(e) => setLt(e.target.value)}
+            required
+          />
+        </div>
+        
+            <div className="mb-3">
+          <label htmlFor="placas" className="form-label">
+            Placas
+          </label>
+          <input
+            type="text"
+            id="placas"
+            className="form-control"
+            value={placas}
+            onChange={(e) => setPlacas(e.target.value)}
+            required
+          />
+        </div>
+
 
         <div className="mb-3">
           <label htmlFor="observaciones" className="form-label">
