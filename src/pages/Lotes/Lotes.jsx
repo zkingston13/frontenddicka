@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { getLotes, imprimirEtiqueta, deleteLote } from "../../services/lotes"; 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // 🛠️ MODIFICACIÓN: Agregamos useNavigate para redirigir al flujo de ubicación
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const Lotes = () => {
@@ -9,6 +9,7 @@ const Lotes = () => {
   const [error, setError] = useState("");
   const [imprimiendoId, setImprimiendoId] = useState(null);
   const [userRole, setUserRole] = useState("");
+  const navigate = useNavigate(); // 🛠️ MODIFICACIÓN: Instanciamos navigate para controlar la acción de ubicar
 
   useEffect(() => {
     fetchLotes();
@@ -107,6 +108,7 @@ const Lotes = () => {
                 <th className="py-2.5 fw-semibold text-center">Folio</th>
                 <th className="py-2.5 fw-semibold text-center">Lote</th>
                 <th className="py-2.5 fw-semibold">Producto</th>
+                <th className="py-2.5 fw-semibold text-center">Estado</th> {/*  MODIFICACIÓN: Agregamos columna Estado */}
                 <th className="py-2.5 fw-semibold text-center">Caducidad</th>
                 <th className="py-2.5 fw-semibold text-center">Ingreso</th>
                 <th className="py-2.5 fw-semibold text-end">Palets</th>
@@ -133,6 +135,16 @@ const Lotes = () => {
                     {/* Producto */}
                     <td className="py-3 text-dark fw-semibold">
                       {lote.producto ? lote.producto.nombre : <span className="text-muted fw-normal">Sin producto</span>}
+                    </td>
+
+                    {/* Estado */}
+                    {/*  MODIFICACIÓN: Renderizado dinámico del badge de estado basado en si contiene ubicacion_id o no */}
+                    <td className="py-3 text-center">
+                      {lote.ubicacion_id ? (
+                        <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style={{ fontSize: "0.75rem" }}>Resguardado</span>
+                      ) : (
+                        <span className="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style={{ fontSize: "0.75rem" }}>Por Ubicar</span>
+                      )}
                     </td>
                     
                     {/* Caducidad */}
@@ -161,6 +173,18 @@ const Lotes = () => {
                     {/* Botones de acción limpios */}
                     <td className="py-3 text-center pe-3">
                       <div className="d-flex justify-content-center gap-1.5">
+                        {/* Botón Dinámico Ubicar */}
+                        {/*  AJUSTE: Redirigir correctamente a la ruta del mapa con el ID del lote */}
+                        {!lote.ubicacion_id && (
+                          <button
+                            onClick={() => navigate(`/racks/mapa/${lote.id}`)}
+                            className="btn btn-primary btn-xs fw-medium"
+                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px" }}
+                          >
+                            Ubicar
+                          </button>
+                        )}
+
                         <Link
                           to={`/lotes/editar/${lote.id}`}
                           className="btn btn-outline-secondary btn-xs fw-medium"
@@ -204,7 +228,7 @@ const Lotes = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="12" className="text-center py-4 text-muted small">
+                  <td colSpan="13" className="text-center py-4 text-muted small"> {/* 🛠️ MODIFICACIÓN: Incrementado colSpan a 13 por la nueva columna */}
                     No se encontraron registros de lotes con el parámetro de búsqueda actual.
                   </td>
                 </tr>

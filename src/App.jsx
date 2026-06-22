@@ -63,7 +63,7 @@ function App() {
               {/* Vistas de lotes Ubicados */}
               <Route path="/lotes/ubicados-no-ubicados" element={<LotesUbicadosNoUbicados />} />
               <Route path="/lotes/detalle/:id" element={<DetalleLote />} />
-              <Route path="/racks/mapa" element={<RackMap/>} />
+              <Route path="/racks/mapa/:loteId?" element={<RackMap />} />
 
        
 

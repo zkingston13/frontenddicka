@@ -17,8 +17,8 @@ const LoteForm = () => {
   const [piezasLote, setPiezasLote] = useState("");
   const [unidadMedida, setUnidadMedida] = useState("");
   const [operador, setOperador] = useState("");
-  const[lt, setLt] = useState("");
-  const[placas, setPlacas] = useState("");
+  const [lt, setLt] = useState("");
+  const [placas, setPlacas] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +42,7 @@ const LoteForm = () => {
 
   const fetchProductos = async () => {
     if (!token) {
-      setError("⚠️ No tienes sesión iniciada.");
+      setError("No tienes sesión iniciada.");
       return;
     }
 
@@ -53,7 +53,7 @@ const LoteForm = () => {
       });
       setProductos(response.data || []);
     } catch (err) {
-      setError("❌ Error al cargar productos.");
+      setError("Error al cargar productos.");
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +61,7 @@ const LoteForm = () => {
 
   const fetchLote = async () => {
     if (!token) {
-      setError("⚠️ No tienes sesión iniciada.");
+      setError("No tienes sesión iniciada.");
       return;
     }
 
@@ -74,7 +74,7 @@ const LoteForm = () => {
       const loteData = response.data;
 
       if (!loteData) {
-        setError("❌ No se encontraron datos del lote.");
+        setError("No se encontraron datos del lote.");
         return;
       }
 
@@ -87,12 +87,12 @@ const LoteForm = () => {
       setPiezasPalet(loteData.piezasPalet || "");
       setPiezasLote(loteData.piezasLote || "");
       setUnidadMedida(loteData.unidadMedida || "");
-      serOperador(loteData.operador || "");
+      setOperador(loteData.operador || "");
       setLt(loteData.lt || "");
       setPlacas(loteData.placas || "");
       setObservaciones(loteData.observaciones || "");
     } catch (err) {
-      setError("❌ Error al cargar lote.");
+      setError("Error al cargar lote.");
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +103,7 @@ const LoteForm = () => {
     setError("");
 
     if (!token) {
-      setError("⚠️ No tienes sesión iniciada.");
+      setError("No tienes sesión iniciada.");
       return;
     }
 
@@ -137,21 +137,21 @@ const LoteForm = () => {
       }
       navigate("/lotes");
     } catch (error) {
-      setError("❌ Error al guardar lote.");
+      setError("Error al guardar lote.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="container mt-4">
-      <h2 className="text-center">
-        {id ? "✏️ Editar Lote" : "📦 Registrar Lote"}
+    <div className="container mt-4" style={{ maxWidth: "900px" }}>
+      <h2 className="text-center mb-4">
+        {id ? "Editar Lote" : "Registrar Lote"}
       </h2>
 
       {error && <div className="alert alert-danger text-center">{error}</div>}
       {isLoading && (
-        <div className="text-center">
+        <div className="text-center mb-3">
           <div className="spinner-border text-primary"></div>
         </div>
       )}
@@ -160,175 +160,187 @@ const LoteForm = () => {
         onSubmit={handleSubmit}
         className="border p-4 rounded shadow-sm bg-light"
       >
-        <div className="mb-3">
-          <label htmlFor="folio" className="form-label">
-            📜 Folio
-          </label>
-          <input
-            type="number"
-            id="folio"
-            className="form-control"
-            value={folio}
-            onChange={(e) => setFolio(e.target.value)}
-            required
-          />
+        {/* Fila 1: Folio y Producto */}
+        <div className="row">
+          <div className="col-md-4 mb-3">
+            <label htmlFor="folio" className="form-label">
+              Folio
+            </label>
+            <input
+              type="number"
+              id="folio"
+              className="form-control"
+              value={folio}
+              onChange={(e) => setFolio(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="col-md-8 mb-3">
+            <label htmlFor="producto" className="form-label">
+              Seleccionar Producto
+            </label>
+            <select
+              id="producto"
+              className="form-select"
+              value={producto_id}
+              onChange={(e) => setProductoId(e.target.value)}
+              required
+            >
+              <option value="">Seleccione un producto</option>
+              {productos.map((prod) => (
+                <option key={prod.id} value={prod.id}>
+                  {prod.nombre} (SKU: {prod.sku})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="mb-3">
-          <label htmlFor="producto" className="form-label">
-            📌 Seleccionar Producto
-          </label>
-          <select
-            id="producto"
-            className="form-select"
-            value={producto_id}
-            onChange={(e) => setProductoId(e.target.value)}
-            required
-          >
-            <option value="">Seleccione un producto</option>
-            {productos.map((prod) => (
-              <option key={prod.id} value={prod.id}>
-                {prod.nombre} (SKU: {prod.sku})
-              </option>
-            ))}
-          </select>
+        {/* Fila 2: Lote, Fecha Recibido y Fecha Caducidad */}
+        <div className="row">
+          <div className="col-md-4 mb-3">
+            <label htmlFor="lote" className="form-label">
+              Número de Lote
+            </label>
+            <input
+              type="text"
+              id="lote"
+              className="form-control"
+              value={lote}
+              onChange={(e) => setLote(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="col-md-4 mb-3">
+            <label htmlFor="fechaRecibido" className="form-label">
+              Fecha de Recibido
+            </label>
+            <input
+              type="date"
+              id="fechaRecibido"
+              className="form-control"
+              value={fechaRecibido}
+              onChange={(e) => setFechaRecibido(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="col-md-4 mb-3">
+            <label htmlFor="caducidad" className="form-label">
+              Fecha de Caducidad
+            </label>
+            <input
+              type="date"
+              id="caducidad"
+              className="form-control"
+              value={caducidad}
+              onChange={(e) => setCaducidad(e.target.value)}
+              required
+            />
+          </div>
         </div>
 
-        <div className="mb-3">
-          <label htmlFor="fechaRecibido" className="form-label">
-            📥 Fecha de Recibido
-          </label>
-          <input
-            type="date"
-            id="fechaRecibido"
-            className="form-control"
-            value={fechaRecibido}
-            onChange={(e) => setFechaRecibido(e.target.value)}
-            required
-          />
+        {/* Fila 3: Palets, Piezas e Insumos */}
+        <div className="row">
+          <div className="col-md-4 mb-3">
+            <label htmlFor="numPalets" className="form-label">
+              Número de Palets
+            </label>
+            <input
+              type="number"
+              id="numPalets"
+              className="form-control"
+              value={numPalets}
+              onChange={(e) => setNumPalets(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="col-md-4 mb-3">
+            <label htmlFor="piezasPalet" className="form-label">
+              Piezas por Pallet
+            </label>
+            <input
+              type="number"
+              id="piezasPalet"
+              className="form-control"
+              value={piezasPalet}
+              onChange={(e) => setPiezasPalet(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="col-md-4 mb-3">
+            <label htmlFor="unidadMedida" className="form-label">
+              Unidad de Medida
+            </label>
+            <input
+              type="text"
+              id="unidadMedida"
+              className="form-control"
+              value={unidadMedida}
+              onChange={(e) => setUnidadMedida(e.target.value)}
+              required
+            />
+          </div>
         </div>
 
-        <div className="mb-3">
-          <label htmlFor="lote" className="form-label">
-            🔢 Número de Lote
-          </label>
-          <input
-            type="text"
-            id="lote"
-            className="form-control"
-            value={lote}
-            onChange={(e) => setLote(e.target.value)}
-            required
-          />
+        {/* Fila 4: Operador, Lt y Placas */}
+        <div className="row">
+          <div className="col-md-4 mb-3">
+            <label htmlFor="operador" className="form-label">
+              Operador
+            </label>
+            <input
+              type="text"
+              id="operador"
+              className="form-control"
+              value={operador}
+              onChange={(e) => setOperador(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="col-md-4 mb-3">
+            <label htmlFor="lt" className="form-label">
+              Lt
+            </label>
+            <input
+              type="text"
+              id="lt"
+              className="form-control"
+              value={lt}
+              onChange={(e) => setLt(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="col-md-4 mb-3">
+            <label htmlFor="placas" className="form-label">
+              Placas
+            </label>
+            <input
+              type="text"
+              id="placas"
+              className="form-control"
+              value={placas}
+              onChange={(e) => setPlacas(e.target.value)}
+              required
+            />
+          </div>
         </div>
 
-        <div className="mb-3">
-          <label htmlFor="caducidad" className="form-label">
-            📅 Fecha de Caducidad
-          </label>
-          <input
-            type="date"
-            id="caducidad"
-            className="form-control"
-            value={caducidad}
-            onChange={(e) => setCaducidad(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* 📦 Número de Palets */}
-        <div className="mb-3">
-          <label htmlFor="numPalets" className="form-label">
-            📦 Número de Palets
-          </label>
-          <input
-            type="number"
-            id="numPalets"
-            className="form-control"
-            value={numPalets}
-            onChange={(e) => setNumPalets(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* 🔢 Piezas por Pallet */}
-        <div className="mb-3">
-          <label htmlFor="piezasPalet" className="form-label">
-            🔢 Piezas por Pallet
-          </label>
-          <input
-            type="number"
-            id="piezasPalet"
-            className="form-control"
-            value={piezasPalet}
-            onChange={(e) => setPiezasPalet(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="unidadMedida" className="form-label">
-            ⚖️ Unidad de Medida
-          </label>
-          <input
-            type="text"
-            id="unidadMedida"
-            className="form-control"
-            value={unidadMedida}
-            onChange={(e) => setUnidadMedida(e.target.value)}
-            required
-          />
-        </div>
-          <div className="mb-3">
-          <label htmlFor="operador" className="form-label">
-            Operador
-          </label>
-          <input
-            type="text"
-            id="operador"
-            className="form-control"
-            value={operador}
-            onChange={(e) => setOperador(e.target.value)}
-            required
-          />
-        </div>
-         
-             <div className="mb-3">
-          <label htmlFor="lt" className="form-label">
-            Lt
-          </label>
-          <input
-            type="text"
-            id="lt"
-            className="form-control"
-            value={lt}
-            onChange={(e) => setLt(e.target.value)}
-            required
-          />
-        </div>
-        
-            <div className="mb-3">
-          <label htmlFor="placas" className="form-label">
-            Placas
-          </label>
-          <input
-            type="text"
-            id="placas"
-            className="form-control"
-            value={placas}
-            onChange={(e) => setPlacas(e.target.value)}
-            required
-          />
-        </div>
-
-
-        <div className="mb-3">
+        {/* Fila 5: Observaciones */}
+        <div className="mb-4">
           <label htmlFor="observaciones" className="form-label">
-            📝 Observaciones
+            Observaciones
           </label>
           <textarea
             id="observaciones"
             className="form-control"
+            rows="3"
             value={observaciones}
             onChange={(e) => setObservaciones(e.target.value)}
           />
@@ -340,10 +352,10 @@ const LoteForm = () => {
           disabled={isLoading}
         >
           {isLoading
-            ? "⏳ Guardando..."
+            ? "Guardando..."
             : id
-            ? "💾 Actualizar Lote"
-            : "📝 Registrar Lote"}
+            ? "Actualizar Lote"
+            : "Registrar Lote"}
         </button>
       </form>
     </div>

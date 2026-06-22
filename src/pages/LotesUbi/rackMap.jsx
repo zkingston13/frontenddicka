@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom"; //  MODIFICACIÓN: Agregamos hooks para leer parámetros y redirección
 import { getRacks, getNiveles, getUbicaciones, actualizarUbicacion } from "../../services/racks";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const RackMap = () => {
+  const { loteId } = useParams(); //  MODIFICACIÓN: Capturamos el id del lote enviado desde la tabla
+  const navigate = useNavigate();
   const [racks, setRacks] = useState([]);
   const [niveles, setNiveles] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
@@ -15,7 +18,6 @@ const RackMap = () => {
 
   useEffect(() => {
     cargarRacks();
-    // listener para cerrar dropdown al hacer click fuera
     const handleClickOutside = (e) => {
       if (!containerRef.current) return;
       if (!containerRef.current.contains(e.target)) {
@@ -57,7 +59,6 @@ const RackMap = () => {
     setDropdownOpenId(null);
     try {
       const res = await getUbicaciones(rackId, nivel);
-      // Normalizar cada ubicación: asegurar que exista un id único y estado en minúsculas
       const norm = (res || []).map((u) => {
         const id = u.id ?? u._id ?? `${u.rack ?? ""}-${u.nivel ?? ""}-${u.posicion ?? u.codigo ?? Math.random()}`;
         return {
@@ -98,28 +99,36 @@ const RackMap = () => {
     setErrorMsg("");
     const uid = ubicacion.__uid;
     try {
-      // Optimista: marcar localmente mientras se hace petición
       setUbicaciones((prev) =>
         prev.map((p) =>
           p.__uid === uid ? { ...p, estado_norm: estado.toLowerCase(), estado: capitalize(estado) } : p
         )
       );
 
-      await actualizarUbicacion(ubicacion.id ?? ubicacion._id ?? ubicacion.__uid, { estado });
+      // 🛠️ MODIFICACIÓN: Si venimos desde el flujo de asignación, adjuntamos el loteId al guardar en la API
+      const payload = { estado };
+      if (loteId && estado === "ocupado") {
+        payload.lote_id = loteId; 
+      }
 
-      // reload del nivel para garantizar consistencia con servidor
+      await actualizarUbicacion(ubicacion.id ?? ubicacion._id ?? ubicacion.__uid, payload);
+
       await cargarUbicaciones(selectedRack, selectedNivel);
       setDropdownOpenId(null);
+
+      //  MODIFICACIÓN: Si se ubicó exitosamente un lote, devolvemos al usuario a la tabla principal
+      if (loteId && estado === "ocupado") {
+        alert("Lote ubicado correctamente en el almacén.");
+        navigate("/lotes");
+      }
     } catch (err) {
       console.error("Error actualizando ubicación:", err);
       setErrorMsg("No se pudo actualizar la ubicación. Intenta de nuevo.");
-      // revertir (simple re-fetch)
       cargarUbicaciones(selectedRack, selectedNivel);
     }
   };
 
   const toggleDropdown = (uid, e) => {
-    // evitar que el click se propague y el listener global lo cierre
     e.stopPropagation && e.stopPropagation();
     setDropdownOpenId((prev) => (prev === uid ? null : uid));
   };
@@ -131,7 +140,15 @@ const RackMap = () => {
 
   return (
     <div className="container mt-4" ref={containerRef}>
-      <h3 className="mb-3">Mapa de Racks</h3>
+      {/*  MODIFICACIÓN: Añadimos un banner informativo si están en proceso de asignar un lote */}
+      {loteId ? (
+        <div className="alert alert-warning border shadow-sm d-flex justify-content-between align-items-center">
+          <span>Selecciona un espacio <b>Vacío</b> en el mapa para asignar el lote <b>ID: {loteId}</b>.</span>
+          <button className="btn btn-sm btn-outline-secondary" onClick={() => navigate("/lotes")}>Cancelar</button>
+        </div>
+      ) : (
+        <h3 className="mb-3">Mapa de Racks</h3>
+      )}
 
       {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
 
@@ -142,7 +159,6 @@ const RackMap = () => {
           <select className="form-control" onChange={handleRackChange} value={selectedRack}>
             <option value="">-- Seleccionar --</option>
             {racks.map((rack) => {
-              // normalizar id/nombre
               const key = rack.id ?? rack._id ?? rack.rack ?? rack.nombre;
               const nombre = rack.nombre ?? rack.rack ?? key;
               return (
@@ -172,7 +188,6 @@ const RackMap = () => {
         </div>
       </div>
 
-      {/* Estado de carga */}
       {loading && (
         <div className="text-center mb-3">
           <div className="spinner-border text-success" role="status" />
@@ -205,7 +220,6 @@ const RackMap = () => {
                 <div style={{ fontSize: 12 }}>{capitalize(u.estado ?? u.estado_norm ?? "")}</div>
               </div>
 
-              {/* Dropdown */}
               {isOpen && (
                 <div
                   className="card shadow position-absolute"
@@ -224,7 +238,7 @@ const RackMap = () => {
                       style={{ cursor: "pointer" }}
                       onClick={() => cambiarEstado("ocupado", u)}
                     >
-                       Ocupado
+                       {loteId ? "Asignar Lote Aquí" : "Ocupado"} {/*  MODIFICACIÓN: Texto dinámico */}
                     </li>
                     <li
                       className="list-group-item list-group-item-action text-center"
