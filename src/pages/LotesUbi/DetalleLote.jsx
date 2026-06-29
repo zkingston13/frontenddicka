@@ -16,6 +16,7 @@ const DetalleLote = () => {
     const cargarDetalle = async () => {
       try {
         const data = await getDetalleLote(id);
+        console.log(data);
         setDetalle(data);
 
         if (data.ubi === "No Ubicado") {
@@ -62,7 +63,7 @@ const DetalleLote = () => {
 
   return (
     <div className="container py-4" style={{ maxWidth: "700px" }}>
-      
+
       {/* Botón superior de retorno */}
       <div className="mb-3">
         <button className="btn btn-link link-secondary text-decoration-none p-0 small fw-medium" onClick={() => navigate(-1)}>
@@ -71,7 +72,7 @@ const DetalleLote = () => {
       </div>
 
       <div className="card border shadow-sm" style={{ borderRadius: "8px" }}>
-        
+
         {/* Cabecera Técnica */}
         <div className="card-header bg-light border-bottom py-3 px-4">
           <div className="d-flex justify-content-between align-items-center">
@@ -87,7 +88,7 @@ const DetalleLote = () => {
 
         {/* Cuerpo del Detalle */}
         <div className="card-body p-4">
-          
+
           {/* Ficha Técnica */}
           <div className="p-3 bg-light border mb-4" style={{ borderRadius: "6px" }}>
             <div className="row">
@@ -95,22 +96,31 @@ const DetalleLote = () => {
               <div className="col-14 text-dark fw-bold fs-6 mt-1">{detalle.producto?.nombre || "Sin especificar"}</div>
             </div>
           </div>
-
+       
           {/* Bloque Condicional: YA ESTÁ UBICADO */}
-          {detalle.ubi === "Ubicado" && detalle.lote_ubicaciones?.length > 0 && (
+          {detalle.ubi === "Ubicado" && (
             <div className="mt-2">
-              <h6 className="fw-bold text-secondary text-uppercase tracking-wider font-monospace mb-2.5" style={{ fontSize: "0.75rem" }}>Posiciones en Almacén</h6>
-              <div className="list-group" style={{ borderRadius: "6px" }}>
-                {detalle.lote_ubicaciones.map((u, idx) => (
-                  <div key={idx} className="list-group-item d-flex justify-content-between align-items-center py-2.5 px-3 bg-white">
-                    <span className="text-muted small">Posición asignada</span>
-                    <span className="font-monospace text-dark fw-bold">{u.qr_ubicacion}</span>
+              <h6 className="fw-bold mb-3">
+                Ubicaciones asignadas
+              </h6>
+
+              {detalle.lote_ubicaciones?.length > 0 ? (
+                detalle.lote_ubicaciones.map((u, index) => (
+                  <div
+                    key={index}
+                    className="alert alert-success d-flex justify-content-between align-items-center"
+                  >
+                    <span>Ubicación</span>
+                    <strong>{u.qr_ubicacion}</strong>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="alert alert-warning">
+                  Este lote no tiene ubicaciones registradas.
+                </div>
+              )}
             </div>
           )}
-
           {/* Bloque Condicional: NO ESTÁ UBICADO (Sistema de sugerencia inteligente) */}
           {detalle.ubi === "No Ubicado" && (
             <div className="border border-warning-subtle bg-warning-subtle bg-opacity-10 p-4 mb-2" style={{ borderRadius: "6px" }}>

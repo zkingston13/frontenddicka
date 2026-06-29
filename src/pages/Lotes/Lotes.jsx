@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { getLotes, imprimirEtiqueta, deleteLote } from "../../services/lotes"; 
+import { getLotes, imprimirEtiqueta, deleteLote } from "../../services/lotes";
 import { Link, useNavigate } from "react-router-dom"; // 🛠️ MODIFICACIÓN: Agregamos useNavigate para redirigir al flujo de ubicación
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -22,7 +22,7 @@ const Lotes = () => {
       if (!Array.isArray(data)) {
         throw new Error("Los datos de lotes no son un array.");
       }
-      setLotes(data.slice(-20)); 
+      setLotes(data.slice(-20));
     } catch (err) {
       setError("Error al cargar lotes.");
       console.error("Error al cargar lotes:", err.message);
@@ -44,7 +44,7 @@ const Lotes = () => {
       "_blank"
     );
   };
-  
+
   const handleEliminar = async (id) => {
     if (
       !window.confirm(
@@ -67,20 +67,20 @@ const Lotes = () => {
 
   const lotesFiltrados = Array.isArray(lotes)
     ? lotes.filter((lote) =>
-        lote.lote.toLowerCase().includes(busqueda.toLowerCase())
-      )
+      lote.lote.toLowerCase().includes(busqueda.toLowerCase())
+    )
     : [];
 
   return (
     <div className="container-fluid px-4 py-4" style={{ backgroundColor: "#fdfdfd", minHeight: "100vh" }}>
-      
+
       {/* Encabezado con buscador e inserción alineados */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center border-bottom pb-3 mb-4">
         <div>
           <h2 className="fw-bold text-dark mb-0" style={{ letterSpacing: "-0.5px" }}>Entradas de Lotes</h2>
           <p className="text-muted small mb-0">Gestión de stock recibido y control de empaques por tarima</p>
         </div>
-        
+
         <div className="d-flex flex-column flex-sm-row gap-2 mt-3 mt-md-0 w-100 w-md-auto" style={{ maxWidth: "500px" }}>
           <input
             type="text"
@@ -125,13 +125,13 @@ const Lotes = () => {
                   <tr key={lote.id} className="border-bottom">
                     {/* ID */}
                     <td className="py-3 text-center text-muted font-monospace" style={{ fontSize: "0.8rem" }}>{lote.id}</td>
-                    
+
                     {/* Folio */}
                     <td className="py-3 text-center font-monospace text-secondary fw-medium">{lote.folio}</td>
-                    
+
                     {/* Lote */}
                     <td className="py-3 text-center font-monospace text-dark fw-bold">{lote.lote}</td>
-                    
+
                     {/* Producto */}
                     <td className="py-3 text-dark fw-semibold">
                       {lote.producto ? lote.producto.nombre : <span className="text-muted fw-normal">Sin producto</span>}
@@ -140,36 +140,39 @@ const Lotes = () => {
                     {/* Estado */}
                     {/*  MODIFICACIÓN: Renderizado dinámico del badge de estado basado en si contiene ubicacion_id o no */}
                     <td className="py-3 text-center">
-                      {lote.ubicacion_id ? (
-                        <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style={{ fontSize: "0.75rem" }}>Resguardado</span>
-                      ) : (
-                        <span className="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style={{ fontSize: "0.75rem" }}>Por Ubicar</span>
-                      )}
+                      <span
+                        className={`badge ${lote.ubi === "No Ubicado"
+                            ? "bg-danger-subtle text-danger border border-danger-subtle"
+                            : "bg-success-subtle text-success border border-success-subtle"
+                          }`}
+                      >
+                        {lote.ubi}
+                      </span>
                     </td>
-                    
+
                     {/* Caducidad */}
                     <td className="py-3 text-center text-secondary">{lote.caducidad}</td>
-                    
+
                     {/* Ingreso */}
                     <td className="py-3 text-center text-secondary">{lote.fechaRecibido || <span className="text-muted">No especificado</span>}</td>
-                    
+
                     {/* Cantidades alineadas numéricamente */}
                     <td className="py-3 text-end font-monospace">{lote.numPalets}</td>
-                    
+
                     {/* Piezas por Palet */}
                     <td className="py-3 text-end font-monospace">{lote.piezasPalet}</td>
-                    
+
                     {/* Piezas Totales */}
                     <td className="py-3 text-end font-monospace fw-bold text-primary">{lote.piezasLote}</td>
-                    
+
                     {/* Unidad */}
                     <td className="py-3 text-center text-muted">{lote.unidadMedida}</td>
-                    
+
                     {/* Observaciones */}
                     <td className="py-3 text-secondary text-truncate" style={{ maxWidth: "180px" }}>
                       {lote.observaciones || <span className="text-muted-light italic">Sin observaciones</span>}
                     </td>
-                    
+
                     {/* Botones de acción limpios */}
                     <td className="py-3 text-center pe-3">
                       <div className="d-flex justify-content-center gap-1.5">
@@ -177,7 +180,7 @@ const Lotes = () => {
                         {/*  AJUSTE: Redirigir correctamente a la ruta del mapa con el ID del lote */}
                         {!lote.ubicacion_id && (
                           <button
-                            onClick={() => navigate(`/racks/mapa/${lote.id}`)}
+                            onClick={() => navigate(`/lotes/detalle/${lote.id}`)}
                             className="btn btn-primary btn-xs fw-medium"
                             style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px" }}
                           >
@@ -192,7 +195,7 @@ const Lotes = () => {
                         >
                           Editar
                         </Link>
-                        
+
                         <button
                           onClick={() => handleImpresion(lote.id)}
                           className="btn btn-outline-primary btn-xs fw-medium"
@@ -214,14 +217,14 @@ const Lotes = () => {
                           "Jefe de operaciones",
                           "Supervisor",
                         ].includes(userRole) && (
-                          <button
-                            onClick={() => handleEliminar(lote.id)}
-                            className="btn btn-outline-danger btn-xs fw-medium"
-                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px" }}
-                          >
-                            Eliminar
-                          </button>
-                        )}
+                            <button
+                              onClick={() => handleEliminar(lote.id)}
+                              className="btn btn-outline-danger btn-xs fw-medium"
+                              style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px" }}
+                            >
+                              Eliminar
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>

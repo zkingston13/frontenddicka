@@ -85,6 +85,12 @@ const Navbar = () => {
                             Lotes
                           </Link>
                         </li>
+                           {/*/lotes/ubicados-no-ubicados */}
+                        <li className="nav-item">
+                          <Link className={activeClass("/racks/mapa")} to="/racks/mapa">
+                           Mapa Racks
+                          </Link>
+                        </li>
                         <li className="nav-item">
                           <Link className={activeClass("/productos")} to="/productos">
                             Productos
@@ -100,11 +106,7 @@ const Navbar = () => {
                             Entregado
                           </Link>
                         </li>
-                        <li className="nav-item">
-                          <Link className={activeClass("/lotes/ubicados-no-ubicados")} to="/lotes/ubicados-no-ubicados">
-                            Ubicar
-                          </Link>
-                        </li>
+                     
                       </>
                     )}
                   {user?.rol &&
