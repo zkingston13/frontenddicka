@@ -27,7 +27,7 @@ const ClienteForm = () => {
       setRazonSocial(response.data.razonSocial);
       setDomicilio(response.data.domicilio);
     } catch (err) {
-      setError("❌ Error al cargar cliente.");
+      setError("Error al cargar la información del cliente.");
       console.error(
         "Error al obtener cliente:",
         err.response?.data || err.message
@@ -46,18 +46,24 @@ const ClienteForm = () => {
     setError("");
 
     if (!token) {
-      setError("⚠️ No tienes sesión iniciada.");
+      setError("No tienes sesión iniciada.");
       return;
     }
 
     if (!user?.id) {
-      setError("⚠️ No se pudo determinar el usuario autenticado.");
+      setError("No se pudo determinar el usuario autenticado.");
+      return;
+    }
+
+    // Validacion basica frontend para evitar envios vacios de puros espacios
+    if (!razonSocial.trim() || !domicilio.trim()) {
+      setError("Todos los campos son obligatorios y no pueden estar vacíos.");
       return;
     }
 
     const clienteData = {
-      razonSocial,
-      domicilio,
+      razonSocial: razonSocial.trim(),
+      domicilio: domicilio.trim(),
       usuario_id: user.id,
     };
 
@@ -74,7 +80,12 @@ const ClienteForm = () => {
       }
       navigate("/clientes");
     } catch (error) {
-      setError("❌ Error al guardar cliente.");
+      // Manejo de errores de validacion del backend (ej. Razon social duplicada)
+      if (error.response && error.response.status === 422) {
+        setError("La razón social ya existe o los datos son inválidos. Verifica la información.");
+      } else {
+        setError("Error al guardar la información del cliente.");
+      }
       console.error(
         "Error al guardar cliente:",
         error.response?.data || error.message
@@ -85,77 +96,81 @@ const ClienteForm = () => {
   };
 
   return (
-    <div className="container mt-4">
-      <h2 className="text-center">
-        {id ? "✏️ Editar Cliente" : "🆕 Registrar Cliente"}
-      </h2>
+    <div className="container mt-4 mb-5">
+      <div className="row justify-content-center">
+        <div className="col-12 col-md-8 col-lg-6">
+          <h2 className="text-center mb-4">
+            {id ? "Editar Cliente" : "Registrar Nuevo Cliente"}
+          </h2>
 
-      {/* 📸 Icono de empresa */}
-      <div className="text-center">
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/3135/3135768.png"
-          alt="Cliente"
-          className="mb-3"
-          style={{ width: "80px", height: "80px" }}
-        />
+          {error && (
+            <div className="alert alert-danger text-center fw-bold" role="alert">
+              {error}
+            </div>
+          )}
+
+          <form
+            onSubmit={handleSubmit}
+            className="border p-4 rounded shadow-sm bg-white"
+          >
+            <div className="mb-3">
+              <label htmlFor="razonSocial" className="form-label fw-medium">
+                Razón Social
+              </label>
+              <input
+                type="text"
+                id="razonSocial"
+                className="form-control"
+                placeholder="Ingrese la razón social"
+                value={razonSocial}
+                onChange={(e) => setRazonSocial(e.target.value.toUpperCase())}
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="domicilio" className="form-label fw-medium">
+                Domicilio Fiscal / Dirección
+              </label>
+              <input
+                type="text"
+                id="domicilio"
+                className="form-control"
+                placeholder="Ingrese el domicilio fiscal"
+                value={domicilio}
+                onChange={(e) => setDomicilio(e.target.value.toUpperCase())}
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            <hr className="my-4" />
+
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => navigate("/clientes")}
+                disabled={isLoading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary px-4"
+                disabled={isLoading}
+              >
+                {isLoading
+                  ? "Procesando..."
+                  : id
+                  ? "Guardar Cambios"
+                  : "Registrar Cliente"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-
-      {/* 🔹 Mostrar errores */}
-      {error && (
-        <div className="alert alert-danger text-center" role="alert">
-          {error}
-        </div>
-      )}
-
-      {/* 🔹 Formulario con Bootstrap */}
-      <form
-        onSubmit={handleSubmit}
-        className="border p-4 rounded shadow-sm bg-light"
-      >
-        <div className="mb-3">
-          <label htmlFor="razonSocial" className="form-label">
-            🏢 Razón Social
-          </label>
-          <input
-            type="text"
-            id="razonSocial"
-            className="form-control"
-            placeholder="Ingrese la razón social"
-            value={razonSocial}
-            onChange={(e) => setRazonSocial(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="domicilio" className="form-label">
-            📍 Domicilio
-          </label>
-          <input
-            type="text"
-            id="domicilio"
-            className="form-control"
-            placeholder="Ingrese el domicilio"
-            value={domicilio}
-            onChange={(e) => setDomicilio(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="btn btn-primary w-100"
-          disabled={isLoading}
-        >
-          {isLoading
-            ? "⏳ Guardando..."
-            : id
-            ? "💾 Actualizar Cliente"
-            : "📝 Registrar Cliente"}
-        </button>
-      </form>
     </div>
   );
 };

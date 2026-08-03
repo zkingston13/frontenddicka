@@ -18,63 +18,69 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    console.log("🔹 Botón presionado, intentando iniciar sesión...");
+    console.log("Intentando iniciar sesión...");
 
     try {
-      const userData = await login(nombreUsuario, password, setUser);
+      await login(nombreUsuario, password, setUser);
     } catch (err) {
-      console.error("❌ Error en login:", err);
-      setError("❌ Credenciales incorrectas");
+      console.error("Error en login:", err);
+      // Mensaje de error más formal y descriptivo
+      setError("Credenciales incorrectas. Verifica tu usuario y contraseña.");
     }
   };
 
-   return (
+  return (
     <div
       className="d-flex justify-content-center align-items-center bg-light"
-      style={{ minHeight: "90vh" }}
+      style={{ minHeight: "100vh" }} // Cambiado a 100vh para centrar perfectamente en toda la pantalla
     >
       <div
         className="card shadow-lg border-0"
         style={{
           width: "100%",
           maxWidth: "450px",
-          height:"500px",
+          // Se eliminó el height: "500px" para que el contenedor crezca dinámicamente si aparece el error
           borderRadius: "20px",
         }}
       >
-        <div className="card-body p-5">
+        <div className="card-body p-4 p-sm-5">
+          
+          {/* LOGO */}
+          <div className="text-center mb-4">
+            <a href="#">
+              <img
+                src={logo}
+                alt="Logo"
+                className="img-fluid"
+                style={{ width: "120px" }}
+              />
+            </a>
+          </div>
 
-      
-  <div className="text-center mb-4">
-    <a href="#">
-      <img  src={logo} alt="Logo" className="img-fluid "
-    style={{ width: "120px" }} />
-    </a>
-    </div>
-        
-          <h1 className="fs-4 fw-bold lh-sm text-dark ">
+          {/* TÍTULO */}
+          <h1 className="fs-4 fw-bold lh-sm text-dark text-center mb-4">
             Inicio de Sesión
           </h1>
 
-    
+          {/* MENSAJE DE ERROR */}
           {error && (
-            <div className="alert alert-danger">
+            <div 
+              className="alert alert-danger text-center py-2 mb-4" 
+              style={{ fontSize: "0.9rem" }}
+              role="alert"
+            >
               {error}
             </div>
           )}
 
           {/* FORM */}
           <form onSubmit={handleLogin}>
-
+            
             {/* USUARIO */}
             <div className="mb-4">
-              <label
-                htmlFor="nombreUsuario"
-                className="form-label fw-semibold"
-              >
+              <label htmlFor="nombreUsuario" className="form-label fw-semibold">
                 Usuario
               </label>
-
               <input
                 type="text"
                 id="nombreUsuario"
@@ -83,7 +89,7 @@ const Login = () => {
                 value={nombreUsuario}
                 onChange={(e) => {
                   setNombreUsuario(e.target.value);
-                  setError("");
+                  setError(""); // Limpia el error al empezar a escribir
                 }}
                 required
               />
@@ -91,13 +97,9 @@ const Login = () => {
 
             {/* PASSWORD */}
             <div className="mb-4">
-              <label
-                htmlFor="password"
-                className="form-label fw-semibold"
-              >
+              <label htmlFor="password" className="form-label fw-semibold">
                 Contraseña
               </label>
-
               <input
                 type="password"
                 id="password"
@@ -106,16 +108,16 @@ const Login = () => {
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
-                  setError("");
+                  setError(""); // Limpia el error al empezar a escribir
                 }}
                 required
               />
             </div>
 
-            {/* BOTON */}
+            {/* BOTÓN */}
             <button
               type="submit"
-              className="btn w-100 text-white fw-bold py-2"
+              className="btn w-100 text-white fw-bold py-2 mt-2"
               style={{
                 backgroundColor: "#8DB9F5",
                 borderRadius: "12px",
@@ -123,7 +125,6 @@ const Login = () => {
             >
               Iniciar sesión
             </button>
-
           </form>
         </div>
       </div>

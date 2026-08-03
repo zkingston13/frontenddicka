@@ -8,8 +8,8 @@ const ProductoForm = () => {
   const [sku, setSku] = useState("");
   const [nombre, setNombre] = useState("");
   const [cliente_id, setClienteId] = useState("");
-  const [propiedades, setPropiedades] = useState(""); // Ahora es solo texto
-  const [caracteristicas, setCaracteristicas] = useState(""); // Ahora es solo texto
+  const [propiedades, setPropiedades] = useState(""); 
+  const [caracteristicas, setCaracteristicas] = useState(""); 
   const [clientes, setClientes] = useState([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +26,7 @@ const ProductoForm = () => {
 
   const fetchClientes = async () => {
     if (!token) {
-      setError("⚠️ No tienes sesión iniciada.");
+      setError("No tienes sesión iniciada.");
       return;
     }
     try {
@@ -36,7 +36,7 @@ const ProductoForm = () => {
       });
       setClientes(response.data);
     } catch (err) {
-      setError("❌ Error al cargar clientes.");
+      setError("Error al cargar la lista de clientes.");
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +44,7 @@ const ProductoForm = () => {
 
   const fetchProducto = async () => {
     if (!token) {
-      setError("⚠️ No tienes sesión iniciada.");
+      setError("No tienes sesión iniciada.");
       return;
     }
     try {
@@ -56,10 +56,10 @@ const ProductoForm = () => {
       setSku(producto.sku);
       setNombre(producto.nombre);
       setClienteId(producto.cliente_id);
-      setPropiedades(producto.propiedades || ""); // Ahora maneja valores vacíos
-      setCaracteristicas(producto.caracteristicas || ""); // Ahora maneja valores vacíos
+      setPropiedades(producto.propiedades || ""); 
+      setCaracteristicas(producto.caracteristicas || ""); 
     } catch (err) {
-      setError("❌ Error al cargar producto.");
+      setError("Error al cargar los datos del producto.");
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +70,7 @@ const ProductoForm = () => {
     setError("");
 
     if (!token) {
-      setError("⚠️ No tienes sesión iniciada.");
+      setError("No tienes sesión iniciada.");
       return;
     }
 
@@ -96,130 +96,137 @@ const ProductoForm = () => {
       }
       navigate("/productos");
     } catch (error) {
-      setError("❌ Error al guardar producto.");
+      setError("Error al guardar el producto. Verifica los datos proporcionados.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="container mt-4">
-      <h2 className="text-center">
-        {id ? "✏️ Editar Producto" : "🆕 Registrar Producto"}
-      </h2>
+    <div className="container mt-4 mb-5">
+      <div className="row justify-content-center">
+        <div className="col-12 col-md-8 col-lg-6">
+          <h2 className="text-center mb-4">
+            {id ? "Editar Producto" : "Registrar Nuevo Producto"}
+          </h2>
 
-      {/* 📦 Icono representativo */}
-      <div className="text-center">
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/3081/3081559.png"
-          alt="Producto"
-          className="mb-3"
-          style={{ width: "80px", height: "80px" }}
-        />
-      </div>
+          {error && <div className="alert alert-danger text-center">{error}</div>}
 
-      {/* 🔹 Mostrar errores */}
-      {error && <div className="alert alert-danger text-center">{error}</div>}
-
-      <form
-        onSubmit={handleSubmit}
-        className="border p-4 rounded shadow-sm bg-light"
-      >
-        <div className="mb-3">
-          <label htmlFor="sku" className="form-label">
-            🏷️ SKU
-          </label>
-          <input
-            type="text"
-            id="sku"
-            className="form-control"
-            placeholder="Ingrese SKU"
-            value={sku}
-            onChange={(e) => setSku(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="nombre" className="form-label">
-            📦 Nombre del Producto
-          </label>
-          <input
-            type="text"
-            id="nombre"
-            className="form-control"
-            placeholder="Nombre del producto"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="cliente" className="form-label">
-            🤝 Cliente
-          </label>
-          <select
-            id="cliente"
-            className="form-select"
-            value={cliente_id}
-            onChange={(e) => setClienteId(e.target.value)}
-            required
-            disabled={isLoading}
+          <form
+            onSubmit={handleSubmit}
+            className="border p-4 rounded shadow-sm bg-white"
           >
-            <option value="">Seleccionar Cliente</option>
-            {clientes.map((cliente) => (
-              <option key={cliente.id} value={cliente.id}>
-                {cliente.razonSocial}
-              </option>
-            ))}
-          </select>
-        </div>
+            <div className="mb-3">
+              <label htmlFor="sku" className="form-label fw-medium">
+                SKU
+              </label>
+              <input
+                type="text"
+                id="sku"
+                className="form-control"
+                placeholder="Ingrese el código SKU"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-        <div className="mb-3">
-          <label htmlFor="propiedades" className="form-label">
-            ⚙️ Propiedades
-          </label>
-          <textarea
-            id="propiedades"
-            className="form-control"
-            placeholder="Ingrese propiedades del producto"
-            value={propiedades}
-            onChange={(e) => setPropiedades(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
+            <div className="mb-3">
+              <label htmlFor="nombre" className="form-label fw-medium">
+                Nombre del Producto
+              </label>
+              <input
+                type="text"
+                id="nombre"
+                className="form-control"
+                placeholder="Ingrese el nombre descriptivo"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-        <div className="mb-3">
-          <label htmlFor="caracteristicas" className="form-label">
-            📋 Características
-          </label>
-          <textarea
-            id="caracteristicas"
-            className="form-control"
-            placeholder="Ingrese características del producto"
-            value={caracteristicas}
-            onChange={(e) => setCaracteristicas(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
+            <div className="mb-3">
+              <label htmlFor="cliente" className="form-label fw-medium">
+                Cliente Asociado
+              </label>
+              <select
+                id="cliente"
+                className="form-select"
+                value={cliente_id}
+                onChange={(e) => setClienteId(e.target.value)}
+                required
+                disabled={isLoading}
+              >
+                <option value="">-- Seleccione un Cliente --</option>
+                {clientes.map((cliente) => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.razonSocial}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <button
-          type="submit"
-          className="btn btn-success w-100"
-          disabled={isLoading}
-        >
-          {isLoading
-            ? "⏳ Guardando..."
-            : id
-            ? "💾 Actualizar Producto"
-            : "📝 Registrar Producto"}
-        </button>
-      </form>
+            <div className="mb-3">
+              <label htmlFor="propiedades" className="form-label fw-medium">
+                Propiedades
+              </label>
+              <textarea
+                id="propiedades"
+                className="form-control"
+                rows="3"
+                placeholder="Especifique las propiedades del producto"
+                value={propiedades}
+                onChange={(e) => setPropiedades(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="caracteristicas" className="form-label fw-medium">
+                Características
+              </label>
+              <textarea
+                id="caracteristicas"
+                className="form-control"
+                rows="3"
+                placeholder="Especifique las características del producto"
+                value={caracteristicas}
+                onChange={(e) => setCaracteristicas(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            <hr className="my-4" />
+
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => navigate("/productos")}
+                disabled={isLoading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary px-4"
+                disabled={isLoading}
+              >
+                {isLoading
+                  ? "Procesando..."
+                  : id
+                  ? "Guardar Cambios"
+                  : "Registrar Producto"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };

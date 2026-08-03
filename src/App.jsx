@@ -13,7 +13,10 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min";
 import Navbar from "./components/NavBar";
 
-// 🔹 Carga diferida (Lazy Loading)
+// ATENCIÓN: Aquí importamos el nuevo componente del temporizador
+import InactivityTimer from "./components/InactivityTimer"; 
+
+// Carga diferida (Lazy Loading)
 const Login = lazy(() => import("./pages/Login/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"));
 const Lotes = lazy(() => import("./pages/Lotes/Lotes"));
@@ -33,41 +36,48 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        {/* ATENCIÓN: Aquí colocamos el temporizador. Al estar dentro del Router, puede redirigir al login, y al no tener diseño, es invisible en tu interfaz. */}
+        <InactivityTimer />
+        
         <Navbar />
         <Suspense fallback={<div className="loading-screen">Cargando...</div>}>
           <Routes>
-            {/* 🔹 Redirigir a Dashboard si está autenticado */}
+            {/* Redirigir a Dashboard si está autenticado */}
             <Route path="/" element={<ProtectedHome />} />
-
-            {/* 🔒 Rutas Protegidas */}
             
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/lotes" element={<Lotes />} />
-              <Route path="/productos" element={<Productos />} />
-              <Route path="/clientes" element={<Clientes />} />
-              <Route path="/salidas" element={<Salidas />} />
-              <Route path="/usuarios" element={<Usuarios />} />
-              {/* ✅ CRUD de Lotes */}
-              <Route path="/lotes/nuevo" element={<LoteForm />} />
-              <Route path="/lotes/editar/:id" element={<LoteForm />} />
-              {/* ✅ CRUD de Productos */}
-              <Route path="/productos/nuevo" element={<ProductoForm />} />
-              <Route path="/productos/editar/:id" element={<ProductoForm />} />
-              {/* ✅ CRUD de Clientes */}
-              <Route path="/clientes/nuevo" element={<ClienteForm />} />
-              <Route path="/clientes/editar/:id" element={<ClienteForm />} />
-              {/* ✅ CRUD de Usuarios */}
-              <Route path="/usuarios/nuevo" element={<UsuarioForm />} />
-              <Route path="/usuarios/editar/:id" element={<UsuarioForm />} />
+            {/* RUTA DE LOGIN AGREGADA AQUÍ PARA EVITAR EL ERROR 404 */}
+            <Route path="/login" element={<Login />} />
 
-              {/* Vistas de lotes Ubicados */}
-              <Route path="/lotes/ubicados-no-ubicados" element={<LotesUbicadosNoUbicados />} />
-              <Route path="/lotes/detalle/:id" element={<DetalleLote />} />
-              <Route path="/racks/mapa/:loteId?" element={<RackMap />} />
+            {/* Rutas Protegidas */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/lotes" element={<Lotes />} />
+            <Route path="/productos" element={<Productos />} />
+            <Route path="/clientes" element={<Clientes />} />
+            <Route path="/salidas" element={<Salidas />} />
+            <Route path="/usuarios" element={<Usuarios />} />
+            
+            {/* CRUD de Lotes */}
+            <Route path="/lotes/nuevo" element={<LoteForm />} />
+            <Route path="/lotes/editar/:id" element={<LoteForm />} />
+            
+            {/* CRUD de Productos */}
+            <Route path="/productos/nuevo" element={<ProductoForm />} />
+            <Route path="/productos/editar/:id" element={<ProductoForm />} />
+            
+            {/* CRUD de Clientes */}
+            <Route path="/clientes/nuevo" element={<ClienteForm />} />
+            <Route path="/clientes/editar/:id" element={<ClienteForm />} />
+            
+            {/* CRUD de Usuarios */}
+            <Route path="/usuarios/nuevo" element={<UsuarioForm />} />
+            <Route path="/usuarios/editar/:id" element={<UsuarioForm />} />
 
-       
+            {/* Vistas de lotes Ubicados */}
+            <Route path="/lotes/ubicados-no-ubicados" element={<LotesUbicadosNoUbicados />} />
+            <Route path="/lotes/detalle/:id" element={<DetalleLote />} />
+            <Route path="/racks/mapa/:loteId?" element={<RackMap />} />
 
-            {/* 🚫 Página 404 */}
+            {/* Página 404 */}
             <Route path="*" element={<h2>Página no encontrada</h2>} />
           </Routes>
         </Suspense>

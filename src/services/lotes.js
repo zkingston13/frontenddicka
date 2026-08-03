@@ -217,13 +217,59 @@ export const getRecomendacionLote = async (id) => {
   }
 };
 
-export const terminarUbicacionLote = async (id) => {
+export const terminarUbicacionLote = async (id, ubicacion) => {
   try {
-    const res = await api.put(`/lotes/${id}/terminado`);
-    return res.data;
+    const response = await api.put(`/lotes/${id}/terminado`, {
+      ubicacion,
+    });
+
+    return response.data;
   } catch (error) {
-    console.error("Error al terminar ubicación del lote:", error);
+    console.error(
+      "Error al terminar ubicación del lote:",
+      error.response?.data || error.message
+    );
+
     throw error;
   }
 };
 
+export const moverLoteASalidas = async (id) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      throw new Error("No hay token disponible.");
+    }
+
+    const response = await api.post(
+      `/lotes/${id}/salida`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    handleError(error, `Error al mandar el lote ${id} a salidas`);
+    throw error;
+  }
+};
+
+
+export const imprimirEtiquetaPallet = async (
+  loteId,
+  palletNumero
+) => {
+  const respuesta = await api.get(
+    `/lotes/${loteId}/pallets/${palletNumero}/etiqueta`,
+    {
+      responseType: "blob",
+    }
+  );
+
+  return respuesta.data;
+};

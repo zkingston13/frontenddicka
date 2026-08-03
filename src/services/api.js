@@ -3,7 +3,7 @@ import axios from "axios";
 // 🔹 Configurar la URL desde variables de entorno
 const API_BASE_URL =
   // import.meta.env.VITE_API_URL || "http://172.20.13.196:8000/api";
- import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+ import.meta.env.VITE_API_URL || "http://3.16.113.134/api";
 
 // 🔹 Crear instancia global de axios
 const api = axios.create({

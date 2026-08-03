@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom"; //  Agregamos useLocation
 import { getSalidas } from "../../services/salidas";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const Salidas = () => {
+  const location = useLocation(); //  Instanciamos location
   const [salidas, setSalidas] = useState([]);
-  const [busqueda, setBusqueda] = useState("");
+  
+  //  Inicializamos la búsqueda con el dato que nos mandó la pantalla de Lotes (si viene alguno)
+  const [busqueda, setBusqueda] = useState(location.state?.busquedaInicial || "");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -25,7 +29,7 @@ const Salidas = () => {
         .slice(0, 20);
 
       setSalidas(salidasOrdenadas);
-      console.log("📦 Datos de salidas recibidos:", salidasOrdenadas); 
+      console.log(" Datos de salidas recibidos:", salidasOrdenadas); 
       setError("");
     } catch (err) {
       setError("Error al cargar salidas.");
@@ -45,7 +49,6 @@ const Salidas = () => {
   return (
     <div className="container-fluid px-4 py-4" style={{ backgroundColor: "#fdfdfd", minHeight: "100vh" }}>
       
-      {/* Barra Superior Unificada */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center border-bottom pb-3 mb-4">
         <div>
           <h2 className="fw-bold text-dark mb-0" style={{ letterSpacing: "-0.5px" }}>Historial de Salidas</h2>
@@ -66,7 +69,6 @@ const Salidas = () => {
 
       {error && <div className="alert alert-danger shadow-sm border-0 small text-center mb-4">{error}</div>}
 
-      {/* Spinner de Carga Estilizado */}
       {isLoading && (
         <div className="text-center my-5 py-5">
           <div className="spinner-border text-primary spinner-border-sm" role="status"></div>
@@ -74,7 +76,6 @@ const Salidas = () => {
         </div>
       )}
 
-      {/* Contenedor de la Tabla Principal */}
       {!isLoading && (
         <div className="card border shadow-sm" style={{ borderRadius: "8px" }}>
           <div className="table-responsive">
@@ -96,44 +97,36 @@ const Salidas = () => {
                   salidasFiltradas.map((salida) => (
                     <tr key={salida.id} className="border-bottom">
                       
-                      {/* ID */}
                       <td className="py-3 text-center text-muted font-monospace" style={{ fontSize: "0.8rem" }}>
                         {salida.id}
                       </td>
                       
-                      {/* Lote */}
                       <td className="py-3 text-center font-monospace text-dark fw-bold">
                         {salida.lote?.lote || <span className="text-muted fw-normal">N/A</span>}
                       </td>
                       
-                      {/* Embarque (Código QR) */}
                       <td className="py-3 text-secondary font-monospace" style={{ fontSize: "0.85rem" }}>
                         {salida.qrEmbarque || <span className="text-muted fw-normal">N/A</span>}
                       </td>
                       
-                      {/* No. Pallet */}
                       <td className="py-3 text-end font-monospace text-secondary">
                         {salida.paletPiso}
                       </td>
                       
-                      {/* Cantidad Entregada */}
                       <td className="py-3 text-end font-monospace fw-bold text-primary">
                         {salida.cantidadEntregada}
                       </td>
                       
-                      {/* Fecha Local es-MX */}
                       <td className="py-3 text-center text-secondary small">
                         {salida.created_at
                           ? new Date(salida.created_at).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })
                           : <span className="text-muted">Sin fecha</span>}
                       </td>
                       
-                      {/* Usuario */}
                       <td className="py-3 text-dark fw-medium">
                         {salida.usuario?.nombre || <span className="text-muted fw-normal">Desconocido</span>}
                       </td>
                       
-                      {/* Observaciones */}
                       <td className="py-3 text-secondary text-truncate pe-3" style={{ maxWidth: "160px" }}>
                         {salida.observaciones || <span className="text-muted-light italic">Sin observaciones</span>}
                       </td>

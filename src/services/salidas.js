@@ -43,12 +43,27 @@ export const registrarSalida = async (data) => {
   }
 };
 
-// ✅ Actualizar una salida por ID
-export const updateSalida = async (id, data) => {
+export const moverLoteASalidas = async (id) => {
   try {
-    const response = await api.put(`/salidas/${id}`, data);
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      throw new Error("No hay token disponible.");
+    }
+
+    const response = await api.post(
+      `/lotes/${id}/salida`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
     return response.data;
   } catch (error) {
-    handleError(error, `Error al actualizar la salida con ID ${id}`);
+    handleError(error, `Error al mandar el lote ${id} a salidas`);
+    throw error;
   }
 };

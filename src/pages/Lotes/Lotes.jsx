@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { getLotes, imprimirEtiqueta, deleteLote } from "../../services/lotes";
-import { Link, useNavigate } from "react-router-dom"; // 🛠️ MODIFICACIÓN: Agregamos useNavigate para redirigir al flujo de ubicación
+import { getLotes, imprimirEtiqueta, deleteLote, moverLoteASalidas } from "../../services/lotes";
+import { Link, useNavigate } from "react-router-dom"; 
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const Lotes = () => {
@@ -9,7 +9,7 @@ const Lotes = () => {
   const [error, setError] = useState("");
   const [imprimiendoId, setImprimiendoId] = useState(null);
   const [userRole, setUserRole] = useState("");
-  const navigate = useNavigate(); // 🛠️ MODIFICACIÓN: Instanciamos navigate para controlar la acción de ubicar
+  const navigate = useNavigate(); 
 
   useEffect(() => {
     fetchLotes();
@@ -40,7 +40,7 @@ const Lotes = () => {
 
   const handleImpresion = (id) => {
     window.open(
-      `http://localhost:8000/api/lotes/${id}/imprimir-etiquetas`,
+      `http://3.16.113.134/api/lotes/${id}/etiquetas`,
       "_blank"
     );
   };
@@ -65,6 +65,34 @@ const Lotes = () => {
     }
   };
 
+  const mandarASalidas = async (id) => {
+  const confirmar = window.confirm(
+    "¿Deseas enviar este lote a salidas?"
+  );
+
+  if (!confirmar) return;
+
+  try {
+    setError("");
+    const loteSeleccionado = lotes.find((l) => l.id === id);
+    const respuesta = await moverLoteASalidas(id);
+
+    alert(respuesta.message || "Lote enviado a salidas");
+    setLotes((prevLotes) =>
+      prevLotes.filter((lote) => lote.id !== id)
+    );
+    navigate("/salidas", { state: { busquedaInicial: loteSeleccionado?.lote } });
+  } catch (error) {
+    console.error("Error al enviar lote:", error);
+
+    setError(
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "No se pudo enviar el lote a salidas"
+    );
+  }
+};
+
   const lotesFiltrados = Array.isArray(lotes)
     ? lotes.filter((lote) =>
       lote.lote.toLowerCase().includes(busqueda.toLowerCase())
@@ -74,7 +102,6 @@ const Lotes = () => {
   return (
     <div className="container-fluid px-4 py-4" style={{ backgroundColor: "#fdfdfd", minHeight: "100vh" }}>
 
-      {/* Encabezado con buscador e inserción alineados */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center border-bottom pb-3 mb-4">
         <div>
           <h2 className="fw-bold text-dark mb-0" style={{ letterSpacing: "-0.5px" }}>Entradas de Lotes</h2>
@@ -98,7 +125,6 @@ const Lotes = () => {
 
       {error && <div className="alert alert-danger shadow-sm border-0 small text-center mb-4">{error}</div>}
 
-      {/* Contenedor principal de la tabla */}
       <div className="card border shadow-sm" style={{ borderRadius: "8px" }}>
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0" style={{ fontSize: "0.88rem" }}>
@@ -108,7 +134,7 @@ const Lotes = () => {
                 <th className="py-2.5 fw-semibold text-center">Folio</th>
                 <th className="py-2.5 fw-semibold text-center">Lote</th>
                 <th className="py-2.5 fw-semibold">Producto</th>
-                <th className="py-2.5 fw-semibold text-center">Estado</th> {/*  MODIFICACIÓN: Agregamos columna Estado */}
+                <th className="py-2.5 fw-semibold text-center">Estado</th>
                 <th className="py-2.5 fw-semibold text-center">Caducidad</th>
                 <th className="py-2.5 fw-semibold text-center">Ingreso</th>
                 <th className="py-2.5 fw-semibold text-end">Palets</th>
@@ -123,22 +149,12 @@ const Lotes = () => {
               {lotesFiltrados.length > 0 ? (
                 lotesFiltrados.map((lote) => (
                   <tr key={lote.id} className="border-bottom">
-                    {/* ID */}
                     <td className="py-3 text-center text-muted font-monospace" style={{ fontSize: "0.8rem" }}>{lote.id}</td>
-
-                    {/* Folio */}
                     <td className="py-3 text-center font-monospace text-secondary fw-medium">{lote.folio}</td>
-
-                    {/* Lote */}
                     <td className="py-3 text-center font-monospace text-dark fw-bold">{lote.lote}</td>
-
-                    {/* Producto */}
                     <td className="py-3 text-dark fw-semibold">
                       {lote.producto ? lote.producto.nombre : <span className="text-muted fw-normal">Sin producto</span>}
                     </td>
-
-                    {/* Estado */}
-                    {/*  MODIFICACIÓN: Renderizado dinámico del badge de estado basado en si contiene ubicacion_id o no */}
                     <td className="py-3 text-center">
                       <span
                         className={`badge ${lote.ubi === "No Ubicado"
@@ -149,35 +165,18 @@ const Lotes = () => {
                         {lote.ubi}
                       </span>
                     </td>
-
-                    {/* Caducidad */}
                     <td className="py-3 text-center text-secondary">{lote.caducidad}</td>
-
-                    {/* Ingreso */}
                     <td className="py-3 text-center text-secondary">{lote.fechaRecibido || <span className="text-muted">No especificado</span>}</td>
-
-                    {/* Cantidades alineadas numéricamente */}
                     <td className="py-3 text-end font-monospace">{lote.numPalets}</td>
-
-                    {/* Piezas por Palet */}
                     <td className="py-3 text-end font-monospace">{lote.piezasPalet}</td>
-
-                    {/* Piezas Totales */}
                     <td className="py-3 text-end font-monospace fw-bold text-primary">{lote.piezasLote}</td>
-
-                    {/* Unidad */}
                     <td className="py-3 text-center text-muted">{lote.unidadMedida}</td>
-
-                    {/* Observaciones */}
                     <td className="py-3 text-secondary text-truncate" style={{ maxWidth: "180px" }}>
                       {lote.observaciones || <span className="text-muted-light italic">Sin observaciones</span>}
                     </td>
-
-                    {/* Botones de acción limpios */}
                     <td className="py-3 text-center pe-3">
                       <div className="d-flex justify-content-center gap-1.5">
-                        {/* Botón Dinámico Ubicar */}
-                        {/*  AJUSTE: Redirigir correctamente a la ruta del mapa con el ID del lote */}
+                        
                         {!lote.ubicacion_id && (
                           <button
                             onClick={() => navigate(`/lotes/detalle/${lote.id}`)}
@@ -212,6 +211,18 @@ const Lotes = () => {
                           )}
                         </button>
 
+                         <button
+  onClick={() => mandarASalidas(lote.id)}
+  className="btn btn-outline-success btn-xs fw-medium"
+  style={{
+    padding: "0.25rem 0.5rem",
+    fontSize: "0.75rem",
+    borderRadius: "4px",
+  }}
+>
+  Salida
+</button>
+                         
                         {[
                           "Administrador",
                           "Jefe de operaciones",
@@ -231,7 +242,7 @@ const Lotes = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="13" className="text-center py-4 text-muted small"> {/* 🛠️ MODIFICACIÓN: Incrementado colSpan a 13 por la nueva columna */}
+                  <td colSpan="13" className="text-center py-4 text-muted small">
                     No se encontraron registros de lotes con el parámetro de búsqueda actual.
                   </td>
                 </tr>

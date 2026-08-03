@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { getDetalleLote, getRecomendacionLote, terminarUbicacionLote } from "../../services/lotes";
+import {
+  getDetalleLote,
+  getRecomendacionLote,
+  terminarUbicacionLote,
+  imprimirEtiquetaPallet,
+} from "../../services/lotes";
 import { useParams, useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -11,49 +16,369 @@ const DetalleLote = () => {
   const [recomendaciones, setRecomendaciones] = useState([]);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  const [ubicacionesConfirmadas, setUbicacionesConfirmadas] = useState([]);
+  const [confirmando, setConfirmando] = useState(null);
+  const [imprimiendoCodigo, setImprimiendoCodigo] = useState(null);
+
+  /**
+   * Cargar información completa del lote.
+   */
+  const cargarDetalle = async () => {
+    try {
+      setError("");
+
+      const data = await getDetalleLote(id);
+
+      console.log("Detalle del lote:", data);
+
+      setDetalle(data);
+
+      const confirmadas =
+        data.lote_ubicaciones?.map(
+          (ubicacion) => ubicacion.qr_ubicacion
+        ) || [];
+
+      setUbicacionesConfirmadas(confirmadas);
+
+      /*
+       * Solo solicitar recomendaciones cuando
+       * el lote todavía no esté ubicado.
+       */
+      if (data.ubi === "No Ubicado") {
+        try {
+          const respuesta = await getRecomendacionLote(id);
+
+          setRecomendaciones(
+            respuesta.recomendaciones || []
+          );
+
+          setMensaje(
+            respuesta.mensaje ||
+              `Se encontraron ${
+                respuesta.recomendaciones?.length || 0
+              } ubicaciones recomendadas`
+          );
+        } catch (err) {
+          console.error(
+            "Error al cargar recomendaciones:",
+            err
+          );
+
+          setMensaje(
+            err.response?.data?.error ||
+              err.response?.data?.message ||
+              "No hay recomendaciones disponibles."
+          );
+
+          setRecomendaciones([]);
+        }
+      } else {
+        setRecomendaciones([]);
+        setMensaje("");
+      }
+    } catch (err) {
+      console.error("Error al cargar el lote:", err);
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "No se pudo cargar la información del lote."
+      );
+    }
+  };
 
   useEffect(() => {
-    const cargarDetalle = async () => {
-      try {
-        const data = await getDetalleLote(id);
-        console.log(data);
-        setDetalle(data);
-
-        if (data.ubi === "No Ubicado") {
-          try {
-            const rec = await getRecomendacionLote(id);
-            setRecomendaciones(rec.recomendaciones || []);
-            setMensaje(rec.mensaje || `Se encontraron ${rec.recomendaciones?.length || 0} ubicaciones recomendadas`);
-          } catch (err) {
-            const apiError = err.response?.data?.error || "No hay recomendaciones disponibles.";
-            setMensaje(apiError);
-            setRecomendaciones([]);
-          }
-        }
-      } catch (err) {
-        console.error("Error:", err);
-        setError("No se pudo cargar la información del lote.");
-      }
-    };
-
     cargarDetalle();
   }, [id]);
 
+  /**
+   * Confirmar una ubicación recomendada.
+   */
+  const confirmarUbicacion = async (codigo) => {
+    try {
+      setConfirmando(codigo);
+
+      const respuesta = await terminarUbicacionLote(
+        id,
+        codigo
+      );
+
+      setUbicacionesConfirmadas((anteriores) => {
+        if (anteriores.includes(codigo)) {
+          return anteriores;
+        }
+
+        return [...anteriores, codigo];
+      });
+
+      /*
+       * Recargar siempre para obtener desde el backend
+       * el pallet_numero asignado a la ubicación.
+       */
+      await cargarDetalle();
+
+      if (respuesta.completado) {
+        setMensaje(
+          respuesta.message ||
+            respuesta.mensaje ||
+            "Todas las ubicaciones fueron confirmadas."
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Error al confirmar ubicación:",
+        err
+      );
+
+      const mensajeError =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.response?.data?.detalle ||
+        "No se pudo confirmar la ubicación.";
+
+      alert(mensajeError);
+    } finally {
+      setConfirmando(null);
+    }
+  };
+
+  /**
+   * Solicitar al backend el PDF correspondiente
+   * a un pallet y abrirlo en una ventana nueva.
+   */
+  const imprimirUbicacion = async (ubicacion) => {
+    let ventanaPdf = null;
+
+    try {
+      if (!ubicacion) {
+        throw new Error(
+          "No se recibió la información de la ubicación."
+        );
+      }
+
+      const codigo = ubicacion.qr_ubicacion;
+
+      const palletNumero =
+        ubicacion.pallet_numero ||
+        ubicacion.etiqueta_numero ||
+        ubicacion.num_pallet;
+
+      if (!codigo) {
+        throw new Error(
+          "La ubicación no tiene un código registrado."
+        );
+      }
+
+      if (!palletNumero) {
+        throw new Error(
+          "La ubicación no tiene asignado un número de pallet."
+        );
+      }
+
+      setImprimiendoCodigo(codigo);
+
+      /*
+       * Se abre antes de la petición para evitar que
+       * el navegador bloquee la ventana emergente.
+       */
+      ventanaPdf = window.open(
+        "",
+        "_blank",
+        "width=700,height=800"
+      );
+
+      if (!ventanaPdf) {
+        throw new Error(
+          "El navegador bloqueó la ventana. Habilita las ventanas emergentes."
+        );
+      }
+
+      ventanaPdf.document.open();
+
+      ventanaPdf.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+          <head>
+            <meta charset="UTF-8">
+            <title>Generando etiqueta</title>
+
+            <style>
+              body {
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-family: Arial, Helvetica, sans-serif;
+                background: #f8f9fa;
+              }
+
+              .contenedor {
+                text-align: center;
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+              }
+
+              .spinner {
+                width: 35px;
+                height: 35px;
+                margin: 0 auto 15px;
+                border: 4px solid #dddddd;
+                border-top-color: #0d6efd;
+                border-radius: 50%;
+                animation: girar 0.8s linear infinite;
+              }
+
+              @keyframes girar {
+                to {
+                  transform: rotate(360deg);
+                }
+              }
+
+              p {
+                margin: 0;
+                color: #555555;
+              }
+            </style>
+          </head>
+
+          <body>
+            <div class="contenedor">
+              <div class="spinner"></div>
+              <p>Generando etiqueta del pallet ${palletNumero}...</p>
+            </div>
+          </body>
+        </html>
+      `);
+
+      ventanaPdf.document.close();
+
+      const pdfBlob = await imprimirEtiquetaPallet(
+        id,
+        palletNumero
+      );
+
+      /*
+       * Algunos servicios devuelven directamente el Blob.
+       * Otros devuelven response.data.
+       */
+      const archivoPdf =
+        pdfBlob?.data instanceof Blob
+          ? pdfBlob.data
+          : pdfBlob;
+
+      if (!(archivoPdf instanceof Blob)) {
+        throw new Error(
+          "El backend no devolvió un archivo PDF válido."
+        );
+      }
+
+      const pdfUrl = URL.createObjectURL(
+        new Blob([archivoPdf], {
+          type: "application/pdf",
+        })
+      );
+
+      ventanaPdf.location.replace(pdfUrl);
+
+      /*
+       * Liberar la URL cuando ya no sea necesaria.
+       */
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfUrl);
+      }, 120000);
+    } catch (err) {
+      console.error(
+        "Error al imprimir etiqueta:",
+        err
+      );
+
+      if (
+        ventanaPdf &&
+        !ventanaPdf.closed
+      ) {
+        ventanaPdf.close();
+      }
+
+      let mensajeError =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        "No se pudo generar la etiqueta.";
+
+      /*
+       * Cuando Laravel devuelve un error JSON,
+       * Axios puede recibirlo como Blob.
+       */
+      if (
+        err.response?.data instanceof Blob &&
+        err.response.data.type ===
+          "application/json"
+      ) {
+        try {
+          const texto =
+            await err.response.data.text();
+
+          const respuestaError =
+            JSON.parse(texto);
+
+          mensajeError =
+            respuestaError.error ||
+            respuestaError.message ||
+            mensajeError;
+        } catch (errorLectura) {
+          console.error(
+            "No se pudo leer el error del backend:",
+            errorLectura
+          );
+        }
+      }
+
+      alert(mensajeError);
+    } finally {
+      setImprimiendoCodigo(null);
+    }
+  };
+
+  /**
+   * Pantalla de carga.
+   */
   if (!detalle && !error) {
     return (
       <div className="text-center my-5 py-5">
-        <div className="spinner-border text-primary spinner-border-sm" role="status"></div>
-        <p className="text-muted small mt-2">Consultando detalles del lote comercial...</p>
+        <div
+          className="spinner-border text-primary spinner-border-sm"
+          role="status"
+        />
+
+        <p className="text-muted small mt-2">
+          Consultando detalles del lote comercial...
+        </p>
       </div>
     );
   }
 
+  /**
+   * Pantalla de error.
+   */
   if (error) {
     return (
-      <div className="container py-5" style={{ maxWidth: "550px" }}>
-        <div className="alert alert-danger shadow-sm border-0 small text-center mb-4">{error}</div>
+      <div
+        className="container py-5"
+        style={{ maxWidth: "550px" }}
+      >
+        <div className="alert alert-danger shadow-sm border-0 small text-center mb-4">
+          {error}
+        </div>
+
         <div className="text-center">
-          <button className="btn btn-outline-secondary btn-sm px-4 fw-medium" onClick={() => navigate(-1)}>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm px-4 fw-medium"
+            onClick={() => navigate(-1)}
+          >
             Regresar
           </button>
         </div>
@@ -62,99 +387,260 @@ const DetalleLote = () => {
   }
 
   return (
-    <div className="container py-4" style={{ maxWidth: "700px" }}>
-
-      {/* Botón superior de retorno */}
+    <div
+      className="container py-4"
+      style={{ maxWidth: "700px" }}
+    >
       <div className="mb-3">
-        <button className="btn btn-link link-secondary text-decoration-none p-0 small fw-medium" onClick={() => navigate(-1)}>
+        <button
+          type="button"
+          className="btn btn-link link-secondary text-decoration-none p-0 small fw-medium"
+          onClick={() => navigate(-1)}
+        >
           &larr; Volver al tablero general
         </button>
       </div>
 
-      <div className="card border shadow-sm" style={{ borderRadius: "8px" }}>
-
-        {/* Cabecera Técnica */}
+      <div
+        className="card border shadow-sm"
+        style={{ borderRadius: "8px" }}
+      >
         <div className="card-header bg-light border-bottom py-3 px-4">
           <div className="d-flex justify-content-between align-items-center">
             <div>
-              <span className="text-muted text-uppercase tracking-wider font-monospace" style={{ fontSize: "0.75rem" }}>Especificación de Registro</span>
-              <h4 className="fw-bold text-dark mb-0 font-monospace mt-0.5">{detalle.lote}</h4>
+              <span
+                className="text-muted text-uppercase font-monospace"
+                style={{ fontSize: "0.75rem" }}
+              >
+                Especificación de Registro
+              </span>
+
+              <h4 className="fw-bold text-dark mb-0 font-monospace mt-1">
+                {detalle.lote}
+              </h4>
             </div>
-            <span className={`badge px-2.5 py-1.5 font-monospace ${detalle.ubi === "Ubicado" ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle"}`} style={{ fontSize: "0.75rem", borderRadius: "4px" }}>
+
+            <span
+              className={`badge px-2 py-1 font-monospace ${
+                detalle.ubi === "Ubicado"
+                  ? "bg-success-subtle text-success border border-success-subtle"
+                  : "bg-danger-subtle text-danger border border-danger-subtle"
+              }`}
+              style={{
+                fontSize: "0.75rem",
+                borderRadius: "4px",
+              }}
+            >
               {detalle.ubi}
             </span>
           </div>
         </div>
 
-        {/* Cuerpo del Detalle */}
         <div className="card-body p-4">
-
-          {/* Ficha Técnica */}
-          <div className="p-3 bg-light border mb-4" style={{ borderRadius: "6px" }}>
-            <div className="row">
-              <div className="col-14 text-secondary small text-uppercase fw-semibold tracking-wide">Producto Asociado</div>
-              <div className="col-14 text-dark fw-bold fs-6 mt-1">{detalle.producto?.nombre || "Sin especificar"}</div>
+          <div
+            className="p-3 bg-light border mb-4"
+            style={{ borderRadius: "6px" }}
+          >
+            <div className="text-secondary small text-uppercase fw-semibold">
+              Producto asociado
             </div>
+
+            <div className="text-dark fw-bold fs-6 mt-1">
+              {detalle.producto?.nombre ||
+                "Sin especificar"}
+            </div>
+
+            {detalle.producto?.sku && (
+              <div className="text-muted small mt-1">
+                SKU: {detalle.producto.sku}
+              </div>
+            )}
           </div>
-       
-          {/* Bloque Condicional: YA ESTÁ UBICADO */}
+
+          {/* LOTE UBICADO */}
           {detalle.ubi === "Ubicado" && (
             <div className="mt-2">
               <h6 className="fw-bold mb-3">
                 Ubicaciones asignadas
               </h6>
 
-              {detalle.lote_ubicaciones?.length > 0 ? (
-                detalle.lote_ubicaciones.map((u, index) => (
-                  <div
-                    key={index}
-                    className="alert alert-success d-flex justify-content-between align-items-center"
-                  >
-                    <span>Ubicación</span>
-                    <strong>{u.qr_ubicacion}</strong>
-                  </div>
-                ))
+              {detalle.lote_ubicaciones?.length >
+              0 ? (
+                <div className="d-flex flex-column gap-2">
+                  {detalle.lote_ubicaciones.map(
+                    (ubicacion, index) => {
+                      const codigo =
+                        ubicacion.qr_ubicacion;
+
+                      const palletNumero =
+                        ubicacion.pallet_numero ||
+                        ubicacion.etiqueta_numero ||
+                        ubicacion.num_pallet;
+
+                      const estaImprimiendo =
+                        imprimiendoCodigo === codigo;
+
+                      return (
+                        <div
+                          key={`${codigo}-${index}`}
+                          className="alert alert-success d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-0"
+                        >
+                          <div>
+                            <div>
+                              <span className="me-2">
+                                Ubicación:
+                              </span>
+
+                              <strong className="font-monospace">
+                                {codigo}
+                              </strong>
+                            </div>
+
+                            {palletNumero && (
+                              <div className="small text-muted mt-1">
+                                Pallet:{" "}
+                                <strong>
+                                  {palletNumero}
+                                </strong>
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary btn-sm fw-medium"
+                            disabled={
+                              estaImprimiendo ||
+                              !palletNumero
+                            }
+                            onClick={() =>
+                              imprimirUbicacion(
+                                ubicacion
+                              )
+                            }
+                          >
+                            {estaImprimiendo ? (
+                              <>
+                                <span
+                                  className="spinner-border spinner-border-sm me-1"
+                                  style={{
+                                    width: "10px",
+                                    height: "10px",
+                                  }}
+                                />
+
+                                Generando...
+                              </>
+                            ) : (
+                              "Imprimir"
+                            )}
+                          </button>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
               ) : (
                 <div className="alert alert-warning">
-                  Este lote no tiene ubicaciones registradas.
+                  Este lote no tiene ubicaciones
+                  registradas.
                 </div>
               )}
             </div>
           )}
-          {/* Bloque Condicional: NO ESTÁ UBICADO (Sistema de sugerencia inteligente) */}
+
+          {/* LOTE NO UBICADO */}
           {detalle.ubi === "No Ubicado" && (
-            <div className="border border-warning-subtle bg-warning-subtle bg-opacity-10 p-4 mb-2" style={{ borderRadius: "6px" }}>
-              <h6 className="fw-bold text-warning-emphasis text-uppercase tracking-wider font-monospace mb-1" style={{ fontSize: "0.75rem" }}>Propuesta de Acomodo Óptimo</h6>
-              <p className="text-muted small mb-3">{mensaje}</p>
+            <div
+              className="border border-warning-subtle bg-warning-subtle bg-opacity-10 p-4 mb-2"
+              style={{ borderRadius: "6px" }}
+            >
+              <h6
+                className="fw-bold text-warning-emphasis text-uppercase font-monospace mb-1"
+                style={{ fontSize: "0.75rem" }}
+              >
+                Propuesta de Acomodo Óptimo
+              </h6>
 
-              {recomendaciones.length > 0 && (
-                <div className="d-flex flex-wrap gap-2 mb-4">
-                  {recomendaciones.map((r, i) => (
-                    <span key={i} className="badge bg-white text-dark border shadow-sm font-monospace py-2 px-3 fs-6" style={{ borderRadius: "4px" }}>
-                      {r.codigo || r.ubicacion}
-                    </span>
-                  ))}
+              <p className="text-muted small mb-3">
+                {mensaje}
+              </p>
+
+              {recomendaciones.length > 0 ? (
+                <div className="d-flex flex-column gap-2">
+                  {recomendaciones.map(
+                    (recomendacion, index) => {
+                      const codigo =
+                        recomendacion.ubicacion;
+
+                      const estaConfirmada =
+                        ubicacionesConfirmadas.includes(
+                          codigo
+                        );
+
+                      const estaConfirmando =
+                        confirmando === codigo;
+
+                      return (
+                        <div
+                          key={codigo || index}
+                          className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 border rounded p-2 bg-white"
+                        >
+                          <div>
+                            <span className="text-muted small me-2">
+                              Ubicación:
+                            </span>
+
+                            <strong className="font-monospace">
+                              {codigo}
+                            </strong>
+
+                            {recomendacion.pallet_numero && (
+                              <div className="small text-muted mt-1">
+                                Pallet sugerido:{" "}
+                                {
+                                  recomendacion.pallet_numero
+                                }
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            className={
+                              estaConfirmada
+                                ? "btn btn-secondary btn-sm"
+                                : "btn btn-success btn-sm"
+                            }
+                            disabled={
+                              estaConfirmada ||
+                              estaConfirmando
+                            }
+                            onClick={() =>
+                              confirmarUbicacion(
+                                codigo
+                              )
+                            }
+                          >
+                            {estaConfirmada
+                              ? "Confirmado"
+                              : estaConfirmando
+                                ? "Confirmando..."
+                                : "Confirmar"}
+                          </button>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              ) : (
+                <div className="alert alert-warning mb-0">
+                  No se encontraron ubicaciones
+                  recomendadas.
                 </div>
               )}
-
-              <button
-                className="btn btn-success btn-sm w-100 fw-semibold tracking-wide py-2"
-                style={{ borderRadius: "5px" }}
-                onClick={async () => {
-                  try {
-                    const res = await terminarUbicacionLote(id);
-                    alert(res.message);
-                    window.location.reload();
-                  } catch (error) {
-                    alert("Error al actualizar el estado del lote.");
-                  }
-                }}
-              >
-                Confirmar Posición Fija
-              </button>
             </div>
           )}
-
         </div>
       </div>
     </div>
