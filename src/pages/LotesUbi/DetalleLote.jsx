@@ -19,6 +19,7 @@ const DetalleLote = () => {
   const [ubicacionesConfirmadas, setUbicacionesConfirmadas] = useState([]);
   const [confirmando, setConfirmando] = useState(null);
   const [imprimiendoCodigo, setImprimiendoCodigo] = useState(null);
+  const [ubicacionIngresada, setUbicacionIngresada] = useState("");
 
   /**
    * Cargar información completa del lote.
@@ -35,7 +36,8 @@ const DetalleLote = () => {
 
       const confirmadas =
         data.lote_ubicaciones?.map(
-          (ubicacion) => ubicacion.qr_ubicacion
+          (ubicacion) =>
+            ubicacion.qr_ubicacion?.trim().toUpperCase()
         ) || [];
 
       setUbicacionesConfirmadas(confirmadas);
@@ -92,24 +94,108 @@ const DetalleLote = () => {
   }, [id]);
 
   /**
+   * Sincronizar las ubicaciones registradas desde la app móvil.
+   * Consulta únicamente el detalle para no solicitar recomendaciones
+   * en cada actualización.
+   */
+  useEffect(() => {
+    const sincronizarUbicaciones = async () => {
+      try {
+        const data = await getDetalleLote(id);
+
+        setDetalle(data);
+
+        const confirmadas =
+          data.lote_ubicaciones?.map(
+            (ubicacion) =>
+              ubicacion.qr_ubicacion?.trim().toUpperCase()
+          ) || [];
+
+        setUbicacionesConfirmadas(confirmadas);
+
+        if (data.ubi === "Ubicado") {
+          setRecomendaciones([]);
+        }
+      } catch (err) {
+        // No reemplazamos la pantalla por un error si falla
+        // solamente una consulta automática.
+        console.error(
+          "Error al sincronizar ubicaciones:",
+          err
+        );
+      }
+    };
+
+    const intervalo = setInterval(
+      sincronizarUbicaciones,
+      3000
+    );
+
+    return () => clearInterval(intervalo);
+  }, [id]);
+
+  /**
    * Confirmar una ubicación recomendada.
    */
   const confirmarUbicacion = async (codigo) => {
+    const codigoLimpio = codigo?.trim().toUpperCase();
+
+    if (!codigoLimpio) {
+      alert("Ingresa o escanea una ubicación.");
+      return;
+    }
+
+    const recomendacionValida = recomendaciones.find(
+      (recomendacion) =>
+        recomendacion.ubicacion
+          ?.trim()
+          .toUpperCase() === codigoLimpio
+    );
+
+    if (!recomendacionValida) {
+      const codigosPermitidos = recomendaciones
+        .map((recomendacion) =>
+          recomendacion.ubicacion
+            ?.trim()
+            .toUpperCase()
+        )
+        .filter(Boolean)
+        .join(", ");
+
+      setUbicacionIngresada("");
+
+      alert(
+        codigosPermitidos
+          ? `La ubicación ${codigoLimpio} no está sugerida para este lote. Ubicaciones permitidas: ${codigosPermitidos}.`
+          : "Este lote no tiene ubicaciones sugeridas disponibles."
+      );
+
+      return;
+    }
+
+    if (ubicacionesConfirmadas.includes(codigoLimpio)) {
+      setUbicacionIngresada("");
+      alert("Esta ubicación ya está confirmada.");
+      return;
+    }
+
     try {
-      setConfirmando(codigo);
+      setConfirmando(codigoLimpio);
 
       const respuesta = await terminarUbicacionLote(
         id,
-        codigo
+        codigoLimpio
       );
 
       setUbicacionesConfirmadas((anteriores) => {
-        if (anteriores.includes(codigo)) {
+        if (anteriores.includes(codigoLimpio)) {
           return anteriores;
         }
 
-        return [...anteriores, codigo];
+        return [...anteriores, codigoLimpio];
       });
+
+      setUbicacionIngresada("");
 
       /*
        * Recargar siempre para obtener desde el backend
@@ -140,6 +226,15 @@ const DetalleLote = () => {
     } finally {
       setConfirmando(null);
     }
+  };
+
+  /**
+   * Confirmar el valor escrito o recibido por un lector de códigos.
+   * La mayoría de los lectores envían Enter al terminar el escaneo.
+   */
+  const confirmarUbicacionIngresada = async (event) => {
+    event.preventDefault();
+    await confirmarUbicacion(ubicacionIngresada);
   };
 
   /**
@@ -550,97 +645,252 @@ const DetalleLote = () => {
           )}
 
           {/* LOTE NO UBICADO */}
-          {detalle.ubi === "No Ubicado" && (
-            <div
-              className="border border-warning-subtle bg-warning-subtle bg-opacity-10 p-4 mb-2"
-              style={{ borderRadius: "6px" }}
+{detalle.ubi === "No Ubicado" && (
+  <div
+    className="border border-warning-subtle bg-warning-subtle bg-opacity-10 p-4 mb-2"
+    style={{ borderRadius: "6px" }}
+  >
+    <h6
+      className="fw-bold text-warning-emphasis text-uppercase font-monospace mb-1"
+      style={{ fontSize: "0.75rem" }}
+    >
+      Propuesta de Acomodo Óptimo
+    </h6>
+
+    <p className="text-muted small mb-3">
+      {mensaje}
+    </p>
+
+    {/* CAPTURA MANUAL O MEDIANTE LECTOR */}
+    <form
+      className="bg-white border rounded p-3 mb-3"
+      onSubmit={confirmarUbicacionIngresada}
+    >
+      <label
+        htmlFor="ubicacionIngresada"
+        className="form-label fw-semibold small"
+      >
+        Ingresar o escanear ubicación
+      </label>
+
+      <div className="input-group">
+        <input
+          id="ubicacionIngresada"
+          type="text"
+          list="ubicacionesSugeridas"
+          className="form-control font-monospace text-uppercase"
+          placeholder="Ej. A-01-02"
+          value={ubicacionIngresada}
+          disabled={confirmando !== null}
+          autoComplete="off"
+          autoFocus
+          onChange={(event) =>
+            setUbicacionIngresada(
+              event.target.value.toUpperCase()
+            )
+          }
+        />
+
+        <button
+          type="submit"
+          className="btn btn-success"
+          disabled={
+            !ubicacionIngresada.trim() ||
+            confirmando !== null
+          }
+        >
+          {confirmando ===
+          ubicacionIngresada.trim().toUpperCase()
+            ? "Confirmando..."
+            : "Confirmar"}
+        </button>
+      </div>
+
+      <datalist id="ubicacionesSugeridas">
+        {recomendaciones.map(
+          (recomendacion, index) => (
+            <option
+              key={`${recomendacion.ubicacion}-${index}`}
+              value={recomendacion.ubicacion}
             >
-              <h6
-                className="fw-bold text-warning-emphasis text-uppercase font-monospace mb-1"
-                style={{ fontSize: "0.75rem" }}
-              >
-                Propuesta de Acomodo Óptimo
-              </h6>
+              {recomendacion.pallet_numero
+                ? `Pallet ${recomendacion.pallet_numero}`
+                : "Ubicación sugerida"}
+            </option>
+          )
+        )}
+      </datalist>
 
-              <p className="text-muted small mb-3">
-                {mensaje}
-              </p>
+      <div className="form-text">
+        Solo se aceptan los códigos sugeridos para este lote. Puedes escribirlos o escanearlos.
+      </div>
+    </form>
 
-              {recomendaciones.length > 0 ? (
-                <div className="d-flex flex-column gap-2">
-                  {recomendaciones.map(
-                    (recomendacion, index) => {
-                      const codigo =
-                        recomendacion.ubicacion;
+    {recomendaciones.length > 0 ? (
+      <div className="d-flex flex-column gap-2">
+        {recomendaciones.map((recomendacion, index) => {
+          const codigo = recomendacion.ubicacion
+            ?.trim()
+            .toUpperCase();
 
-                      const estaConfirmada =
-                        ubicacionesConfirmadas.includes(
-                          codigo
-                        );
+          /*
+           * Verifica si esta ubicación ya fue confirmada.
+           */
+          const estaConfirmada =
+            ubicacionesConfirmadas.includes(codigo);
 
-                      const estaConfirmando =
-                        confirmando === codigo;
+          /*
+           * Después de confirmar, buscamos en el detalle
+           * la ubicación guardada por el backend.
+           */
+          const ubicacionConfirmada =
+            detalle.lote_ubicaciones?.find(
+              (ubicacion) =>
+                ubicacion.qr_ubicacion
+                  ?.trim()
+                  .toUpperCase() === codigo
+            );
 
-                      return (
-                        <div
-                          key={codigo || index}
-                          className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 border rounded p-2 bg-white"
-                        >
-                          <div>
-                            <span className="text-muted small me-2">
-                              Ubicación:
-                            </span>
+          /*
+           * Número de pallet devuelto por el backend.
+           */
+          const palletNumero =
+            ubicacionConfirmada?.pallet_numero ||
+            ubicacionConfirmada?.etiqueta_numero ||
+            ubicacionConfirmada?.num_pallet ||
+            recomendacion.pallet_numero ||
+            null;
 
-                            <strong className="font-monospace">
-                              {codigo}
-                            </strong>
+          const codigoPallet =
+            ubicacionConfirmada?.codigo_pallet ||
+            recomendacion.codigo_pallet ||
+            recomendacion.pallet_codigo ||
+            palletNumero;
 
-                            {recomendacion.pallet_numero && (
-                              <div className="small text-muted mt-1">
-                                Pallet sugerido:{" "}
-                                {
-                                  recomendacion.pallet_numero
-                                }
-                              </div>
-                            )}
-                          </div>
+          const estaConfirmando =
+            confirmando === codigo;
 
-                          <button
-                            type="button"
-                            className={
-                              estaConfirmada
-                                ? "btn btn-secondary btn-sm"
-                                : "btn btn-success btn-sm"
-                            }
-                            disabled={
-                              estaConfirmada ||
-                              estaConfirmando
-                            }
-                            onClick={() =>
-                              confirmarUbicacion(
-                                codigo
-                              )
-                            }
-                          >
-                            {estaConfirmada
-                              ? "Confirmado"
-                              : estaConfirmando
-                                ? "Confirmando..."
-                                : "Confirmar"}
-                          </button>
-                        </div>
-                      );
-                    }
+          const estaImprimiendo =
+            imprimiendoCodigo === codigo;
+
+          /*
+           * Imprimir solamente cuando:
+           * 1. La ubicación ya fue confirmada.
+           * 2. Existe el objeto de ubicación guardado.
+           * 3. Existe el número de pallet.
+           */
+          const puedeImprimir =
+            estaConfirmada &&
+            ubicacionConfirmada &&
+            palletNumero;
+
+          return (
+            <div
+              key={codigo || index}
+              className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 border rounded p-2 bg-white"
+            >
+              <div>
+                <div>
+                  <span className="text-muted small me-2">
+                    Código de ubicación:
+                  </span>
+
+                  <strong className="font-monospace">
+                    {codigo}
+                  </strong>
+                </div>
+
+                <div className="small text-muted mt-1">
+                  Código de pallet:{" "}
+                  <strong className="font-monospace">
+                    {codigoPallet || "Sin código asignado"}
+                  </strong>
+                </div>
+
+                {estaConfirmada && palletNumero && (
+                  <div className="small text-success mt-1">
+                    Pallet confirmado:{" "}
+                    <strong>{palletNumero}</strong>
+                  </div>
+                )}
+
+                {!estaConfirmada &&
+                  recomendacion.pallet_numero && (
+                    <div className="small text-muted mt-1">
+                      Pallet sugerido:{" "}
+                      <strong>
+                        {recomendacion.pallet_numero}
+                      </strong>
+                    </div>
                   )}
-                </div>
-              ) : (
-                <div className="alert alert-warning mb-0">
-                  No se encontraron ubicaciones
-                  recomendadas.
-                </div>
-              )}
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                {/* BOTÓN CONFIRMAR */}
+                <button
+                  type="button"
+                  className={
+                    estaConfirmada
+                      ? "btn btn-success btn-sm"
+                      : "btn btn-danger btn-sm"
+                  }
+                  disabled={
+                    estaConfirmada ||
+                    estaConfirmando
+                  }
+                  onClick={() =>
+                    confirmarUbicacion(codigo)
+                  }
+                >
+                  {estaConfirmada
+                    ? "Confirmado"
+                    : estaConfirmando
+                      ? "Confirmando..."
+                      : "Confirmar"}
+                </button>
+
+                {/* BOTÓN IMPRIMIR */}
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm fw-medium"
+                  disabled={
+                    !puedeImprimir ||
+                    estaImprimiendo
+                  }
+                  onClick={() =>
+                    imprimirUbicacion(
+                      ubicacionConfirmada
+                    )
+                  }
+                >
+                  {estaImprimiendo ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm me-1"
+                        style={{
+                          width: "10px",
+                          height: "10px",
+                        }}
+                      />
+
+                      Generando...
+                    </>
+                  ) : (
+                    "Imprimir"
+                  )}
+                </button>
+              </div>
             </div>
-          )}
+          );
+        })}
+      </div>
+    ) : (
+      <div className="alert alert-warning mb-0">
+        No se encontraron ubicaciones recomendadas.
+      </div>
+    )}
+  </div>
+)}
         </div>
       </div>
     </div>
